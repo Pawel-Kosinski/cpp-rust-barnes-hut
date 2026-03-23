@@ -1,11 +1,10 @@
-// 1. Struktura na stertę (Klasyczne OOP)
 #include <vector>
 #include <cmath>
 #include "timer.hpp"
 #include <iostream>
 
-constexpr float G = 1.0f; // Gravitational constant
-constexpr float TIME_STEP = 0.016f; // Time step for the simulation
+constexpr float G = 1.0f;
+constexpr float TIME_STEP = 0.016f;
 constexpr float THETA = 0.5f;
 constexpr float FRAMES = 300;
 constexpr int NUM_PARTICLES = 10000;
@@ -29,7 +28,6 @@ struct Particle
     float posY{0.0f};
 };
 
-// 2. Pomocnicza (Kierunek)
 int getQuadrantPtr(const NodePtr* node, const Particle& particle) 
 {
     int index = 0;
@@ -38,7 +36,7 @@ int getQuadrantPtr(const NodePtr* node, const Particle& particle)
     return index;
 }
 
-// 3. Budowa drzewa (Bardzo wolne przez "new")
+//Budowa drzewa 
 void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles) 
 {
     if (node->particleIndex != -1) 
@@ -67,7 +65,7 @@ void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles
 
     for (int i = 0; i < 4; ++i) 
     {
-        node->children[i] = new NodePtr(); // WĄSKIE GARDŁO: Alokacja na stercie
+        node->children[i] = new NodePtr(); //Alokacja na stercie
         node->children[i]->halfSize = hSize;
         node->children[i]->boundsX = node->boundsX + ((i % 2) * 2 - 1) * hSize;
         node->children[i]->boundsY = node->boundsY + ((i / 2) * 2 - 1) * hSize;
@@ -77,7 +75,7 @@ void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles
     insertParticlePtr(node, pIdx, particles);
 }
 
-// 4. Obliczanie Środka Masy (Rekurencja od dołu do góry)
+// Obliczanie Środka Masy (Rekurencja od dołu do góry)
 void computeMassDistributionPtr(NodePtr* node, const std::vector<Particle>& particles) 
 {
     if (node->children[0] != nullptr) 
@@ -110,7 +108,7 @@ void computeMassDistributionPtr(NodePtr* node, const std::vector<Particle>& part
     }
 }
 
-// 5. Obliczanie Sił (Rekurencja top-down)
+// Obliczanie Sił (Rekurencja top-down)
 void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particles) 
 {
     if (node == nullptr) return;

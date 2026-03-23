@@ -5,8 +5,8 @@
 #include "timer.hpp"
 #include <ctime>
 
-constexpr float G = 1.0f; // Gravitational constant
-constexpr float TIME_STEP = 0.016f; // Time step for the simulation
+constexpr float G = 1.0f;
+constexpr float TIME_STEP = 0.016f;
 constexpr float THETA = 0.5f;
 constexpr float FRAMES = 300;
 constexpr int NUM_PARTICLES = 10000;
