@@ -7,7 +7,8 @@
 constexpr float G = 1.0f; // Gravitational constant
 constexpr float TIME_STEP = 0.016f; // Time step for the simulation
 constexpr float THETA = 0.5f;
-constexpr float FRAMES = 1000;
+constexpr float FRAMES = 300;
+constexpr int NUM_PARTICLES = 10000;
 
 struct Particle
 {
@@ -128,52 +129,54 @@ void threadTree(int nodeIdx, int nextIdx, std::vector<Node>& arena)
     }
 }
 
-void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vector<Node>& arena)
+void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& particles, const std::vector<Node>& arena)
 {
+    //Zabezpieczenie przed pustymi dziećmi
+    if (nodeIdx == -1) return;
+
     Particle& p = particles[pIdx];
-    int currNodeIdx = 0; 
+    const Node& node = arena[nodeIdx];
 
-    while (currNodeIdx != -1)
+    float dx = node.centerX - p.posX;
+    float dy = node.centerY - p.posY;
+    float distSq = dx * dx + dy * dy;
+
+    if (distSq < 1e-5f) return;
+
+    float dist = std::sqrt(distSq);
+    float s = node.halfSize * 2.0f;
+
+    if ((s / dist) < THETA || node.children[0] == -1)
     {
-        const Node& node = arena[currNodeIdx];
+        float acc = G * node.mass / (distSq + 1.0f);
+        p.accX += acc * (dx / dist);
+        p.accY += acc * (dy / dist);
+    }
+    else
+    {
 
-        float dx = node.centerX - p.posX;
-        float dy = node.centerY - p.posY;
-        float distSq = dx * dx + dy * dy;
-        float dist = std::sqrt(distSq);
-
-        if (distSq < 1e-5f) 
+        for (int i = 0; i < 4; ++i)
         {
-            currNodeIdx = node.next;
-            continue;
-        }
-
-        float s = node.halfSize * 2.0f;
-        if ((s / dist) < THETA || node.children[0] == -1)
-        {
-            float acc = G * node.mass / (distSq + 1e-10f);
-            p.accX += acc * (dx / dist);
-            p.accY += acc * (dy / dist);
-
-            currNodeIdx = node.next;
-        }
-        else
-        {
-            currNodeIdx = node.children[0];
+            if (node.children[i] != -1)
+            {
+                calculateForcesRecursive(pIdx, node.children[i], particles, arena);
+            }
         }
     }
 }
 
 int main()
 {
+    srand(42);
     std::vector<Particle> particles;
     std::vector<Node> treeArena;
     Timer timer;
     float totalTreeBuildTime = 0.0f;
     float totalForceTime = 0.0f;
+    unsigned long long totalCyclesTree = 0;
+    unsigned long long totalCyclesForce = 0;
 
-    // Generowanie cząstek
-    for (int i = 0; i < 400; ++i)
+    for (int i = 0; i < NUM_PARTICLES; ++i)
     {
         Particle p;
         p.velocityX = (static_cast<float>(rand()) / RAND_MAX * 50.0f) - 25.0f;
@@ -186,7 +189,6 @@ int main()
 
     treeArena.reserve(particles.size() * 10);
 
-    // Pętla symulacji
     for (int frame = 0; frame < FRAMES; ++frame)
     {
         timer.start(); 
@@ -221,14 +223,16 @@ int main()
 
         computeMassDistribution(0, treeArena, particles);
         threadTree(0, -1, treeArena);
-        totalTreeBuildTime += timer.stop();
+        totalTreeBuildTime += timer.stopTime();
+        totalCyclesTree += timer.stopCycles();
 
         timer.start();
         for (int i = 0; i < particles.size(); ++i)
         {
-            calculateForces(i, particles, treeArena);
+            calculateForcesRecursive(i, 0, particles, treeArena);
         }
-        totalForceTime += timer.stop();
+        totalForceTime += timer.stopTime();
+        totalCyclesForce += timer.stopCycles();
 
         for (auto& particle : particles)
         {
@@ -240,13 +244,14 @@ int main()
             particle.accX = 0.0f; 
             particle.accY = 0.0f; 
         }
-        
-        std::cout << "Klatka " << frame << " | Korzen Masy: X=" 
-                  << treeArena[0].centerX << ", Y=" << treeArena[0].centerY << "\n";
     }
+    std::cout << " | Korzen Masy: X=" << particles[0].posX << " Y=" << particles[0].posY << std::endl;
     std::cout << "WYNIKI WYDAJNOSCIOWE (Srednia z wszystkich klatek) \n";
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
+    std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
+
     return 0;
 }

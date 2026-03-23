@@ -7,7 +7,8 @@
 constexpr float G = 1.0f; // Gravitational constant
 constexpr float TIME_STEP = 0.016f; // Time step for the simulation
 constexpr float THETA = 0.5f;
-constexpr float FRAMES = 1000;
+constexpr float FRAMES = 300;
+constexpr int NUM_PARTICLES = 10000;
 
 struct NodePtr 
 {
@@ -126,13 +127,12 @@ void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particle
 
     if ((s / dist) < THETA || node->children[0] == nullptr) 
     {
-        float acc = G * node->mass / (distSq + 1e-10f);
+        float acc = G * node->mass / (distSq + 1.0f);
         p.accX += acc * (dx / dist);
         p.accY += acc * (dy / dist);
     } 
     else 
     {
-        // Narzut pamięciowy: Skakanie po wskaźnikach, które są rozrzucone w RAM-ie
         for (int i = 0; i < 4; ++i) 
         {
             calculateForcesPtr(pIdx, node->children[i], particles);
@@ -140,7 +140,6 @@ void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particle
     }
 }
 
-// 6. Sprzątanie pamięci RAM (WĄSKIE GARDŁO: powolne 'delete')
 void deleteTreePtr(NodePtr* node) 
 {
     if (node == nullptr) return;
@@ -153,13 +152,15 @@ void deleteTreePtr(NodePtr* node)
 
 int main()
 {
+    srand(42);
     std::vector<Particle> particles;
     Timer timer;
     float totalTreeBuildTime = 0.0f;
     float totalForceTime = 0.0f;
+    unsigned long long totalCyclesTree = 0;
+    unsigned long long totalCyclesForce = 0;
 
-    // Generowanie cząstek
-    for (int i = 0; i < 400; ++i)
+    for (int i = 0; i < NUM_PARTICLES; ++i)
     {
         Particle p;
         p.velocityX = (static_cast<float>(rand()) / RAND_MAX * 50.0f) - 25.0f;
@@ -171,7 +172,6 @@ int main()
     }
 
 
-    // Pętla symulacji
     for (int frame = 0; frame < FRAMES; ++frame)
     {
         timer.start(); 
@@ -192,19 +192,18 @@ int main()
         float halfHeight = (maxY - minY) / 2.0f;
         float maxHalfSize = std::max(halfWidth, halfHeight) + 1.0f;
 
-        // 1. Inicjalizacja
         NodePtr* rootPtr = new NodePtr();
         rootPtr->boundsX = centerX;
         rootPtr->boundsY = centerY;
         rootPtr->halfSize = maxHalfSize;
 
-        // 2. Budowa
         for (int i = 0; i < particles.size(); ++i) {
             insertParticlePtr(rootPtr, i, particles);
         }
 
         computeMassDistributionPtr(rootPtr, particles);
-        totalTreeBuildTime += timer.stop();
+        totalTreeBuildTime += timer.stopTime();
+        totalCyclesTree += timer.stopCycles();
 
         timer.start();
         for (int i = 0; i < particles.size(); ++i)
@@ -212,7 +211,8 @@ int main()
             calculateForcesPtr(i, rootPtr, particles);
         }
         deleteTreePtr(rootPtr);
-        totalForceTime += timer.stop();
+        totalForceTime += timer.stopTime();
+        totalCyclesForce += timer.stopCycles();
 
         for (auto& particle : particles)
         {
@@ -226,8 +226,11 @@ int main()
         }
     }
     std::cout << "WYNIKI WYDAJNOSCIOWE (Srednia z wszystkich klatek) \n";
+    std::cout << " | Korzen Masy: X=" << particles[0].posX << " Y=" << particles[0].posY << std::endl;
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
+    std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
     return 0;
 }
