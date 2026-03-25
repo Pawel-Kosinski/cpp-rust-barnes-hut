@@ -3,14 +3,16 @@
 #include "node.hpp"
 #include <algorithm>
 #include "timer.hpp"
+#include <ctime>
+#include <omp.h>
 #include <fstream> 
 #include <cmath>
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
-constexpr float THETA = 0.5f;
+constexpr float THETA = 0.4;
 constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 10000;
+constexpr int NUM_PARTICLES = 50000;
 
 struct Particle
 {
@@ -131,38 +133,38 @@ void threadTree(int nodeIdx, int nextIdx, std::vector<Node>& arena)
     }
 }
 
-void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& particles, const std::vector<Node>& arena)
+void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vector<Node>& arena)
 {
-    //Zabezpieczenie przed pustymi dziećmi
-    if (nodeIdx == -1) return;
-
     Particle& p = particles[pIdx];
-    const Node& node = arena[nodeIdx];
+    int currNodeIdx = 0; 
 
-    float dx = node.centerX - p.posX;
-    float dy = node.centerY - p.posY;
-    float distSq = dx * dx + dy * dy;
-
-    if (distSq < 1e-5f) return;
-
-    float dist = std::sqrt(distSq);
-    float s = node.halfSize * 2.0f;
-
-    if ((s / dist) < THETA || node.children[0] == -1)
+    while (currNodeIdx != -1)
     {
-        float acc = G * node.mass / (distSq + 1.0f);
-        p.accX += acc * (dx / dist);
-        p.accY += acc * (dy / dist);
-    }
-    else
-    {
+        const Node& node = arena[currNodeIdx];
 
-        for (int i = 0; i < 4; ++i)
+        float dx = node.centerX - p.posX;
+        float dy = node.centerY - p.posY;
+        float distSq = dx * dx + dy * dy;
+        float dist = std::sqrt(distSq);
+
+        if (distSq < 1e-5f) 
         {
-            if (node.children[i] != -1)
-            {
-                calculateForcesRecursive(pIdx, node.children[i], particles, arena);
-            }
+            currNodeIdx = node.next;
+            continue;
+        }
+
+        float s = node.halfSize * 2.0f;
+        if ((s / dist) < THETA || node.children[0] == -1)
+        {
+            float acc = G * node.mass / (distSq + 1.0f);
+            p.accX += acc * (dx / dist);
+            p.accY += acc * (dy / dist);
+
+            currNodeIdx = node.next;
+        }
+        else
+        {
+            currNodeIdx = node.children[0];
         }
     }
 }
@@ -188,7 +190,6 @@ int main()
         p.posY = static_cast<float>(rand()) / RAND_MAX * 100.0f;
         particles.push_back(p);
     }
-
     treeArena.reserve(particles.size() * 10);
 
     for (int frame = 0; frame < FRAMES; ++frame)
@@ -229,15 +230,19 @@ int main()
         totalCyclesTree += timer.stopCycles();
 
         timer.start();
+        #pragma omp parallel for
         for (int i = 0; i < particles.size(); ++i)
         {
-            calculateForcesRecursive(i, 0, particles, treeArena);
+            calculateForces(i, particles, treeArena);
         }
         totalForceTime += timer.stopTime();
         totalCyclesForce += timer.stopCycles();
 
-        for (auto& particle : particles)
+        #pragma omp parallel for
+        for (int i = 0; i < particles.size(); ++i)
         {
+            Particle& particle = particles[i];
+        
             particle.velocityX += particle.accX * TIME_STEP;
             particle.velocityY += particle.accY * TIME_STEP;
             particle.posX += particle.velocityX * TIME_STEP;
@@ -254,7 +259,7 @@ int main()
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    std::ifstream inFile("wzorzec_10k.txt");
+    std::ifstream inFile("wzorzec_50k.txt");
     if (!inFile) 
     {
         std::cout << "file error.\n";

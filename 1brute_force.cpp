@@ -1,11 +1,12 @@
 #include <iostream>
 #include <vector>
 #include "timer.hpp"
+#include <fstream>
 
 constexpr float G = 1; // Gravitational constant
 constexpr float TIME_STEP = 0.016f; // Time step for the simulation
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 10000;
+constexpr float FRAMES = 50;
+constexpr int NUM_PARTICLES = 50000;
 
 struct Particle
 {
@@ -86,5 +87,13 @@ int main()
     std::cout << "Czas liczenia sil:  " << (time / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (time) << " ms\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCycles / FRAMES) << " cykli / klatke\n";
+
+    std::ofstream outFile("wzorzec_50k.txt");
+    for (const auto& p : particles)
+    {
+        outFile << p.posX << " " << p.posY << "\n";
+    }
+    outFile.close();
+    std::cout << "Zapisano pozycje referencyjne do pliku wzorzec_10k.txt\n";
     return 0;
 }

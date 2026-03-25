@@ -2,6 +2,8 @@
 #include <cmath>
 #include "timer.hpp"
 #include <iostream>
+#include <fstream> 
+#include <cmath>
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
@@ -230,5 +232,28 @@ int main()
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
+    std::ifstream inFile("wzorzec_10k.txt");
+    if (!inFile) 
+    {
+        std::cout << "file error.\n";
+    } 
+    else 
+    {
+        float totalError = 0.0f;
+        float refX = 0.0f, refY = 0.0f;
+        
+        for (const auto& p : particles)
+        {
+            inFile >> refX >> refY;
+            
+            float dx = p.posX - refX;
+            float dy = p.posY - refY;
+            totalError += std::sqrt(dx * dx + dy * dy);
+        }
+        inFile.close();
+        
+        float meanAbsoluteError = totalError / NUM_PARTICLES;
+        std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
+    }
     return 0;
 }
