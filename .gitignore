@@ -1,0 +1,15 @@
+# Ignore everything by default
+*
+!*/
+
+# Track source files
+!*.cpp
+!*.hpp
+!*.rs
+
+# Track Cargo files
+!Cargo.toml
+!Cargo.lock
+
+# Track git configuration
+!.gitignore
