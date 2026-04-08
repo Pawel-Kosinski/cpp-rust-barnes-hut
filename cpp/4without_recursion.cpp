@@ -179,16 +179,23 @@ int main()
     unsigned long long totalCyclesTree = 0;
     unsigned long long totalCyclesForce = 0;
 
-    for (int i = 0; i < NUM_PARTICLES; ++i)
+   std::ifstream inFile("start_10k.txt");
+    if (!inFile)
     {
-        Particle p;
-        p.velocityX = (static_cast<float>(rand()) / RAND_MAX * 50.0f) - 25.0f;
-        p.velocityY = (static_cast<float>(rand()) / RAND_MAX * 50.0f) - 25.0f;
-        p.mass = static_cast<float>(rand()) / RAND_MAX * 10.0f;
-        p.posX = static_cast<float>(rand()) / RAND_MAX * 100.0f;
-        p.posY = static_cast<float>(rand()) / RAND_MAX * 100.0f;
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_10k.txt!\n";
+        return 1;
+    }
+
+    Particle p;
+    p.accX = 0.0f;
+    p.accY = 0.0f;
+    
+    while (inFile >> p.posX >> p.posY >> p.velocityX >> p.velocityY >> p.mass)
+    {
         particles.push_back(p);
     }
+    inFile.close();
+
     treeArena.reserve(particles.size() * 10);
 
     for (int frame = 0; frame < FRAMES; ++frame)
@@ -254,8 +261,8 @@ int main()
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    std::ifstream inFile("wzorzec_10k.txt");
-    if (!inFile) 
+    std::ifstream outFile("wzorzec_10k.txt");
+    if (!outFile) 
     {
         std::cout << "file error.\n";
     } 
@@ -266,13 +273,13 @@ int main()
         
         for (const auto& p : particles)
         {
-            inFile >> refX >> refY;
+            outFile >> refX >> refY;
             
             float dx = p.posX - refX;
             float dy = p.posY - refY;
             totalError += std::sqrt(dx * dx + dy * dy);
         }
-        inFile.close();
+        outFile.close();
         
         float meanAbsoluteError = totalError / NUM_PARTICLES;
         std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
