@@ -215,7 +215,7 @@ float mainLoop(std::vector<Particle> particles)
             size_t treeMem = treeArena.capacity() * sizeof(Node); 
             
             double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-            std::cout << "Prawdziwe zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+            std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
             std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
         }
 
@@ -247,8 +247,6 @@ float mainLoop(std::vector<Particle> particles)
             particle.accY = 0.0f; 
         }
     }
-    std::cout << " | Korzen Masy: X=" << particles[0].posX << " Y=" << particles[0].posY << std::endl;
-    std::cout << "WYNIKI WYDAJNOSCIOWE (Srednia z wszystkich klatek) \n";
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
@@ -308,7 +306,7 @@ int main()
     }
     inFile.close();
     //std::vector<Particle> originalParticles = particles;
-    std::vector<int> threadCounts = {1, 2, 4, 8, 16, 32}; 
+    std::vector<int> threadCounts = {1, 2, 4, 6, 8, 16, 32}; 
     std::vector<double> forceTimes(threadCounts.size());
 
     for(size_t t = 0; t < threadCounts.size(); ++t)
