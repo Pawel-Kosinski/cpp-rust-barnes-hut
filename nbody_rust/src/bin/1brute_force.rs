@@ -1,5 +1,4 @@
 use std::time::Instant;
-use rand::Rng;
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::_rdtsc;
 use std::fs::File;

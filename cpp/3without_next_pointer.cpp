@@ -229,8 +229,19 @@ int main()
             insertParticle(0, i, treeArena, particles);
         }
 
+        if (frame == 0) {
+            // Rozmiar cząstek:
+            size_t particlesMem = particles.capacity() * sizeof(Particle);
+            // Maksymalny rozmiar zarezerwowanej areny drzewa:
+            size_t treeMem = treeArena.capacity() * sizeof(Node); 
+            
+            double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
+            std::cout << "Prawdziwe zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+            std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        }
+
         computeMassDistribution(0, treeArena, particles);
-        //threadTree(0, -1, treeArena);
+        threadTree(0, -1, treeArena);
         totalTreeBuildTime += timer.stopTime();
         totalCyclesTree += timer.stopCycles();
 
@@ -268,6 +279,7 @@ int main()
     else 
     {
         float totalError = 0.0f;
+        float maxError = 0.0f;
         float refX = 0.0f, refY = 0.0f;
         
         for (const auto& p : particles)
@@ -276,12 +288,17 @@ int main()
             
             float dx = p.posX - refX;
             float dy = p.posY - refY;
-            totalError += std::sqrt(dx * dx + dy * dy);
+            float currentError = std::sqrt(dx * dx + dy * dy);
+            totalError += currentError;
+            if (currentError > maxError) {
+                maxError = currentError; 
+            }
         }
         outFile.close();
         
         float meanAbsoluteError = totalError / NUM_PARTICLES;
         std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
+        std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
     }
     return 0;
 }
