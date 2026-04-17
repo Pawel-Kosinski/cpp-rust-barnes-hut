@@ -263,8 +263,6 @@ fn main()
         {
             calculateForces(i, 0, &mut arena, &mut particles);
         }
-        total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
         for p in &mut particles
         {
@@ -275,6 +273,8 @@ fn main()
             p.acc_x = 0.0;
             p.acc_y = 0.0;
         }
+        total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
+        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 }
 
     println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
@@ -289,6 +289,8 @@ fn main()
             let ref_reader = io::BufReader::new(ref_file);
             let mut total_error = 0.0f32;
             let mut particle_count = 0usize;
+            let mut current_error = 0.0f32;
+            let mut max_error = 0.0f32;
 
             for (idx, line) in ref_reader.lines().enumerate() {
                 if idx >= NUM_PARTICLES {
@@ -313,7 +315,11 @@ fn main()
 
                     let dx = particles[idx].pos_x - ref_x;
                     let dy = particles[idx].pos_y - ref_y;
-                    total_error += (dx * dx + dy * dy).sqrt();
+                    current_error = (dx * dx + dy * dy).sqrt();
+                    total_error += current_error;
+                    if current_error > max_error {
+                        max_error = current_error;
+                    }
                     particle_count += 1;
                 }
             }
@@ -321,6 +327,7 @@ fn main()
             if particle_count > 0 {
                 let mean_absolute_error = total_error / particle_count as f32;
                 println!("Sredni blad pozycji (MAE): {} jednostek", mean_absolute_error);
+                println!("Maksymalny blad pozycji: {} jednostek", max_error);
             }
         }
         Err(_) => {

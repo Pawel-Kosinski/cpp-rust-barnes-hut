@@ -6,8 +6,8 @@
 
 constexpr float G = 1; // Gravitational constant
 constexpr float TIME_STEP = 0.016f; // Time step for the simulation
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 10000;
+constexpr float FRAMES = 100;
+constexpr int NUM_PARTICLES = 50000;
 
 struct Particle
 {
@@ -31,10 +31,10 @@ int main()
     unsigned long long totalCycles = 0;
     particles.reserve(NUM_PARTICLES);
 
-    std::ifstream inFile("start_10k.txt");
+    std::ifstream inFile("start_50k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_10k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
         return 1;
     }
 
@@ -49,6 +49,14 @@ int main()
     inFile.close();
     for (int frame = 0; frame < FRAMES; ++frame)
     {
+        // if (frame == 0) {
+        //     // Rozmiar cząstek:
+        //     size_t particlesMem = particles.capacity() * sizeof(Particle);
+        //     // Maksymalny rozmiar zarezerwowanej areny drzewa: 
+            
+        //     double totalAppMemMB = static_cast<double>(particlesMem) / (1024.0 * 1024.0);
+        //     std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+        // }
         timer.start(); 
         for (int i = 0; i < NUM_PARTICLES; ++i)
         {
@@ -66,6 +74,9 @@ int main()
                 float dx = particleB.posX - particleA.posX;
                 float dy = particleB.posY - particleA.posY;
                 float distanceSquared = dx * dx + dy * dy;
+                if (distanceSquared < 1e-5f) {
+                    continue; 
+                }
                 float distance = sqrt(distanceSquared);
 
                 float acc = G * particleB.mass / (distanceSquared + 1.0f); // Add small value to prevent division by zero
@@ -91,12 +102,11 @@ int main()
             particle.accY = 0.0f; 
         }
     }
-    std::cout << " | Korzen Masy: X=" << particles[0].posX << " Y=" << particles[0].posY << std::endl;
     std::cout << "Czas liczenia sil:  " << (time / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (time) << " ms\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCycles / FRAMES) << " cykli / klatke\n";
 
-    std::ofstream outFile("wzorzec_10k.txt");
+    std::ofstream outFile("wzorzec_50k.txt");
     for (const auto& p : particles)
     {
         outFile << p.posX << " " << p.posY << "\n";

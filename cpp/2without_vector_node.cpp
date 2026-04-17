@@ -8,8 +8,8 @@
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
 constexpr float THETA = 0.4f;
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 10000;
+constexpr float FRAMES = 100;
+constexpr int NUM_PARTICLES = 50000;
 
 struct NodePtr 
 {
@@ -174,10 +174,10 @@ int main()
     unsigned long long totalCyclesForce = 0;
     particles.reserve(NUM_PARTICLES);
 
-    std::ifstream inFile("start_10k.txt");
+    std::ifstream inFile("start_50k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_10k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
         return 1;
     }
 
@@ -221,15 +221,15 @@ int main()
             insertParticlePtr(rootPtr, i, particles);
         }
         if (frame == 0) {
-        // Rozmiar cząstek:
-        size_t particlesMem = particles.capacity() * sizeof(Particle);
-        // Maksymalny rozmiar zarezerwowanej areny drzewa:
-        int nodeCount = countNodesPtr(rootPtr);
-        size_t treeMem = nodeCount * sizeof(NodePtr);
-        
-        double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-        std::cout << "Prawdziwe zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-        std::cout << "Stworzono " << nodeCount << " wezlow drzewa.\n";
+            //Rozmiar cząstek:
+            size_t particlesMem = particles.capacity() * sizeof(Particle);
+            // Maksymalny rozmiar zarezerwowanej areny drzewa:
+            int nodeCount = countNodesPtr(rootPtr);
+            size_t treeMem = nodeCount * sizeof(NodePtr);
+            
+            double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
+            std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+            std::cout << "Stworzono " << nodeCount << " wezlow drzewa.\n";
         }
 
         computeMassDistributionPtr(rootPtr, particles);
@@ -242,8 +242,6 @@ int main()
             calculateForcesPtr(i, rootPtr, particles);
         }
         deleteTreePtr(rootPtr);
-        totalForceTime += timer.stopTime();
-        totalCyclesForce += timer.stopCycles();
 
         for (auto& particle : particles)
         {
@@ -255,15 +253,15 @@ int main()
             particle.accX = 0.0f; 
             particle.accY = 0.0f; 
         }
+        totalForceTime += timer.stopTime();
+        totalCyclesForce += timer.stopCycles();
     }
-    std::cout << "WYNIKI WYDAJNOSCIOWE (Srednia z wszystkich klatek) \n";
-    std::cout << " | Korzen Masy: X=" << particles[0].posX << " Y=" << particles[0].posY << std::endl;
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    std::ifstream outFile("wzorzec_10k.txt");
+    std::ifstream outFile("wzorzec_50k.txt");
     if (!outFile) 
     {
         std::cout << "file error.\n";

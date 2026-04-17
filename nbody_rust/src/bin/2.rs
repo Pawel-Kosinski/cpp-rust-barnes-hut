@@ -164,6 +164,19 @@ fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>
         }
     }
 }
+
+fn countNodesPtr(node: &NodePtr) -> i32
+{
+    let mut count: i32 = 1; 
+    for i in 0..4
+    {
+        if node.children[i].is_some() 
+        {
+            count += countNodesPtr(node.children[i].as_ref().unwrap());
+        }
+    }
+    return count;
+}
  
 fn main()
 {
@@ -204,7 +217,7 @@ fn main()
     let mut total_cycles_force: u64 = 0;
     let mut total_cycles_tree: u64 = 0;
 
-    for _ in 0..FRAMES {
+    for i in 0..FRAMES {
         
         let mut start_time = Instant::now();
         let mut start_cycles = unsafe { _rdtsc() }; 
@@ -233,9 +246,18 @@ fn main()
         root.bounds_y = centerY;
         root.half_size = maxHalfSize;
 
-        for i in 0..NUM_PARTICLES
+        for j in 0..NUM_PARTICLES
         {
-            insertParticlePtr(&mut root, i, &mut particles);
+            insertParticlePtr(&mut root, j, &mut particles);
+        }
+        if i == 0 {
+            let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+            let nodeCount = countNodesPtr(&root);
+            let treeMem = (nodeCount as usize) * std::mem::size_of::<NodePtr>();
+            let totalAppMemMB = (particlesMem + treeMem) as f64 / (1024.0 * 1024.0);
+
+            println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+            println!("Stworzono {} wezlow drzewa", nodeCount);
         }
 
         computeMassDistributionPtr(&mut root, &particles);
@@ -244,12 +266,10 @@ fn main()
 
         start_time = Instant::now();
         start_cycles = unsafe { _rdtsc() };
-        for i in 0..NUM_PARTICLES
+        for k in 0..NUM_PARTICLES
         {
-            calculateForcesPtr(i, &root, &mut particles);
+            calculateForcesPtr(k, &root, &mut particles);
         }
-        total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
         for p in &mut particles
         {
@@ -260,6 +280,9 @@ fn main()
             p.acc_x = 0.0;
             p.acc_y = 0.0;
         }
+
+        total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
+        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 }
 
     println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
@@ -274,6 +297,8 @@ fn main()
             let ref_reader = io::BufReader::new(ref_file);
             let mut total_error = 0.0f32;
             let mut particle_count = 0usize;
+            let mut current_error = 0.0f32;
+            let mut max_error = 0.0f32;
 
             for (idx, line) in ref_reader.lines().enumerate() {
                 if idx >= NUM_PARTICLES {
@@ -298,7 +323,11 @@ fn main()
 
                     let dx = particles[idx].pos_x - ref_x;
                     let dy = particles[idx].pos_y - ref_y;
-                    total_error += (dx * dx + dy * dy).sqrt();
+                    current_error = (dx * dx + dy * dy).sqrt();
+                    total_error += current_error;
+                    if current_error > max_error {
+                        max_error = current_error;
+                    }
                     particle_count += 1;
                 }
             }
@@ -306,6 +335,7 @@ fn main()
             if particle_count > 0 {
                 let mean_absolute_error = total_error / particle_count as f32;
                 println!("Sredni blad pozycji (MAE): {} jednostek", mean_absolute_error);
+                println!("Maksymalny blad pozycji: {} jednostek", max_error);
             }
         }
         Err(_) => {

@@ -2,12 +2,13 @@ use std::time::Instant;
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::_rdtsc;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 const NUM_PARTICLES: usize = 10000;
 const FRAMES: usize = 300;
 const TIME_STEP: f32 = 0.016; 
+const G : f32 = 1.0;
 
 struct Particle {
     velocity_x: f32,
@@ -51,12 +52,7 @@ fn main() {
             });
         }
     }
-
-    println!(
-        "Particle 0 (Start): X={}, Y={}",
-        particles[0].pos_x, particles[0].pos_y
-    );
-    assert!(particles.len() >= NUM_PARTICLES);
+    //assert!(particles.len() >= NUM_PARTICLES);
     
     let mut total_force_time_ms = 0.0;
     let mut total_cycles_force: u64 = 0;
@@ -83,7 +79,7 @@ fn main() {
 
                 let distance = dist_sq.sqrt();
                 
-                let acc = particle_b.mass / (dist_sq + 1.0); 
+                let acc = G * particle_b.mass / (dist_sq + 1.0); 
 
                 acc_x += acc * (dx / distance);
                 acc_y += acc * (dy / distance);
@@ -95,9 +91,6 @@ fn main() {
         let end_cycles = unsafe { _rdtsc() };
         let end_time = start_time.elapsed();
 
-        total_force_time_ms += end_time.as_secs_f64() * 1000.0;
-        total_cycles_force += end_cycles - start_cycles;
-
         // Całkowanie Euler'a (Aktualizacja pozycji)
         for i in 0..NUM_PARTICLES {
             particles[i].velocity_x += particles[i].acc_x * TIME_STEP;
@@ -108,14 +101,18 @@ fn main() {
             particles[i].acc_x = 0.0;
             particles[i].acc_y = 0.0;
         }
+        total_force_time_ms += end_time.as_secs_f64() * 1000.0;
+        total_cycles_force += end_cycles - start_cycles;
     }
 
-    println!(
-        "| Korzen Masy (Particle 0): X={} Y={}",
-        particles[0].pos_x, particles[0].pos_y
-    );
+    let outFile = std::fs::File::create("wzorzec_10k.txt").unwrap();
+    let mut writer = std::io::BufWriter::new(outFile);
+    for p in &particles {
+        writeln!(writer, "{} {}", p.pos_x, p.pos_y).unwrap();
+    }
     
     println!("WYNIKI WYDAJNOSCIOWE (Srednia z wszystkich klatek)");
     println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
     println!("Cykle liczenia sil: {} cykli / klatke", total_cycles_force / (FRAMES as u64));
+    println!("Calkowity czas symulacji: {:.4} ms\n", total_force_time_ms / (FRAMES as f64));
 }

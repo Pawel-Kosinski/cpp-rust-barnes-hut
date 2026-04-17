@@ -11,8 +11,8 @@
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
 constexpr float THETA = 0.4;
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 10000;
+constexpr float FRAMES = 100;
+constexpr int NUM_PARTICLES = 50000;
 
 struct Particle
 {
@@ -169,14 +169,35 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
     }
 }
 
-float mainLoop(std::vector<Particle> particles)
+int main()
 {
+    omp_set_num_threads(8);
+    srand(42);
+    std::vector<Particle> particles;
     std::vector<Node> treeArena;
     Timer timer;
     float totalTreeBuildTime = 0.0f;
     float totalForceTime = 0.0f;
     unsigned long long totalCyclesTree = 0;
     unsigned long long totalCyclesForce = 0;
+
+    std::ifstream inFile("start_50k.txt");
+    if (!inFile)
+    {
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
+        return 1;
+    }
+
+    Particle p;
+    p.accX = 0.0f;
+    p.accY = 0.0f;
+    
+    while (inFile >> p.posX >> p.posY >> p.velocityX >> p.velocityY >> p.mass)
+    {
+        particles.push_back(p);
+    }
+    inFile.close();
+
     for (int frame = 0; frame < FRAMES; ++frame)
     {
         timer.start(); 
@@ -225,13 +246,11 @@ float mainLoop(std::vector<Particle> particles)
         totalCyclesTree += timer.stopCycles();
 
         timer.start();
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(dynamic, 32)
         for (int i = 0; i < particles.size(); ++i)
         {
             calculateForces(i, particles, treeArena);
         }
-        totalForceTime += timer.stopTime();
-        totalCyclesForce += timer.stopCycles();
 
         #pragma omp parallel for
         for (int i = 0; i < particles.size(); ++i)
@@ -246,13 +265,15 @@ float mainLoop(std::vector<Particle> particles)
             particle.accX = 0.0f; 
             particle.accY = 0.0f; 
         }
+        totalForceTime += timer.stopTime();
+        totalCyclesForce += timer.stopCycles();
     }
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    std::ifstream outFile("wzorzec_10k.txt");
+    std::ifstream outFile("wzorzec_50k.txt");
     if (!outFile) 
     {
         std::cout << "file error.\n";
@@ -281,58 +302,5 @@ float mainLoop(std::vector<Particle> particles)
         std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
         std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
     }
-    return totalForceTime / FRAMES;
-}
-int main()
-{
-    srand(42);
-    std::vector<Particle> particles;
-
-
-    std::ifstream inFile("start_10k.txt");
-    if (!inFile)
-    {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_10k.txt!\n";
-        return 1;
-    }
-
-    Particle p;
-    p.accX = 0.0f;
-    p.accY = 0.0f;
-    
-    while (inFile >> p.posX >> p.posY >> p.velocityX >> p.velocityY >> p.mass)
-    {
-        particles.push_back(p);
-    }
-    inFile.close();
-    //std::vector<Particle> originalParticles = particles;
-    std::vector<int> threadCounts = {1, 2, 4, 6, 8, 16, 32}; 
-    std::vector<double> forceTimes(threadCounts.size());
-
-    for(size_t t = 0; t < threadCounts.size(); ++t)
-    {
-        int numThreads = threadCounts[t];
-        omp_set_num_threads(numThreads);
-        //particles = originalParticles;
-        std::cout << "Watki: " << numThreads << std::endl;
-        forceTimes[t] = mainLoop(particles);
-    }
-
-    std::cout << "\nWYNIKI SKALOWANIA\n";
-    double timeSeq = forceTimes[0];
-    for(size_t t = 0; t < threadCounts.size(); ++t)
-    {
-        int p = threadCounts[t];
-        double timeP = forceTimes[t];
-        
-        double speedup = timeSeq / timeP;          // S_p = T_1 / T_p
-        double efficiency = speedup / p;           // E_p = S_p / p
-        
-        std::cout << "Watki (p): " << p 
-                  << " | Czas (T_p): " << timeP << " ms"
-                  << " | Speedup (S_p): " << speedup 
-                  << " | Efficiency (E_p): " << (efficiency * 100.0) << " %\n";
-    }
-
     return 0;
 }

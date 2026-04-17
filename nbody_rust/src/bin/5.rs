@@ -298,7 +298,7 @@ fn main()
         start_cycles = unsafe { _rdtsc() };
         
         // Iterator `par_iter_mut()` dzieli wektor cząstek pomiędzy rdzenie CPU
-        particles.par_iter_mut().enumerate().for_each(|(i, p)| {});
+        //particles.par_iter_mut().enumerate().for_each(|(i, p)| {});
         
         //Policz siły wielowątkowo i zbierz je do nowego wektora
         let forces: Vec<(f32, f32)> = (0..NUM_PARTICLES).into_par_iter().map(|i| {
@@ -325,13 +325,14 @@ fn main()
     println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
     println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
 
-    // ... kod sprawdzania błędów bez zmian
     let ref_path = Path::new("wzorzec_10k.txt");
     match File::open(&ref_path) {
         Ok(ref_file) => {
             let ref_reader = io::BufReader::new(ref_file);
             let mut total_error = 0.0f32;
             let mut particle_count = 0usize;
+            let mut current_error = 0.0f32;
+            let mut max_error = 0.0f32;
 
             for (idx, line) in ref_reader.lines().enumerate() {
                 if idx >= NUM_PARTICLES { break; }
@@ -343,13 +344,18 @@ fn main()
 
                     let dx = particles[idx].pos_x - ref_x;
                     let dy = particles[idx].pos_y - ref_y;
-                    total_error += (dx * dx + dy * dy).sqrt();
+                    current_error = (dx * dx + dy * dy).sqrt();
+                    total_error += current_error;
+                    if current_error > max_error {
+                        max_error = current_error;
+                    }
                     particle_count += 1;
                 }
             }
             if particle_count > 0 {
                 let mean_absolute_error = total_error / particle_count as f32;
                 println!("Sredni blad pozycji (MAE): {} jednostek", mean_absolute_error);
+                println!("Maksymalny blad pozycji: {} jednostek", max_error);
             }
         }
         Err(_) => { eprintln!("file error."); }

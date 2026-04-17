@@ -118,19 +118,6 @@ void computeMassDistribution(int nodeIdx, std::vector<Node>& arena, const std::v
     }
 }
 
-void threadTree(int nodeIdx, int nextIdx, std::vector<Node>& arena)
-{
-    arena[nodeIdx].next = nextIdx;
-    if (arena[nodeIdx].children[0] != -1)
-    {
-        for (int i = 0; i < 3; ++i)
-        {
-            threadTree(arena[nodeIdx].children[i], arena[nodeIdx].children[i + 1], arena);
-        }
-        threadTree(arena[nodeIdx].children[3], nextIdx, arena);
-    }
-}
-
 void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& particles, const std::vector<Node>& arena)
 {
     //Zabezpieczenie przed pustymi dziećmi
@@ -195,7 +182,7 @@ int main()
     }
     inFile.close();
 
-    treeArena.reserve(particles.size() * 10);
+    //treeArena.reserve(particles.size() * 10);
 
     for (int frame = 0; frame < FRAMES; ++frame)
     {
@@ -229,19 +216,18 @@ int main()
             insertParticle(0, i, treeArena, particles);
         }
 
-        if (frame == 0) {
-            // Rozmiar cząstek:
-            size_t particlesMem = particles.capacity() * sizeof(Particle);
-            // Maksymalny rozmiar zarezerwowanej areny drzewa:
-            size_t treeMem = treeArena.capacity() * sizeof(Node); 
+        // if (frame == 0) {
+        //     // Rozmiar cząstek:
+        //     size_t particlesMem = particles.capacity() * sizeof(Particle);
+        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     size_t treeMem = treeArena.capacity() * sizeof(Node); 
             
-            double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-            std::cout << "Prawdziwe zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-            std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
-        }
+        //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
+        //     std::cout << "Prawdziwe zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        // }
 
         computeMassDistribution(0, treeArena, particles);
-        threadTree(0, -1, treeArena);
         totalTreeBuildTime += timer.stopTime();
         totalCyclesTree += timer.stopCycles();
 
@@ -250,8 +236,6 @@ int main()
         {
             calculateForcesRecursive(i, 0, particles, treeArena);
         }
-        totalForceTime += timer.stopTime();
-        totalCyclesForce += timer.stopCycles();
 
         for (auto& particle : particles)
         {
@@ -260,11 +244,12 @@ int main()
             particle.posX += particle.velocityX * TIME_STEP;
             particle.posY += particle.velocityY * TIME_STEP;
             
-            particle.accX = 0.0f; 
-            particle.accY = 0.0f; 
+            particle.accX = 0.0f;
+            particle.accY = 0.0f;
         }
+        totalForceTime += timer.stopTime();
+        totalCyclesForce += timer.stopCycles();
     }
-    std::cout << " | Korzen Masy: X=" << particles[0].posX << " Y=" << particles[0].posY << std::endl;
     std::cout << "WYNIKI WYDAJNOSCIOWE (Srednia z wszystkich klatek) \n";
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
