@@ -200,8 +200,8 @@ fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>
  
 fn main()
 {
-    let mut particles: Vec<Particle> = Vec::with_capacity(NUM_PARTICLES);
-    let mut arena: Vec<Node> = Vec::with_capacity(10 * NUM_PARTICLES);
+    let mut particles = Vec::new();
+    let mut arena = Vec::new();
     
     let path = Path::new("start_10k.txt");
     let file = match File::open(&path) {
@@ -238,7 +238,7 @@ fn main()
     let mut total_cycles_force: u64 = 0;
     let mut total_cycles_tree: u64 = 0;
 
-    for _ in 0..FRAMES {
+    for j in 0..FRAMES {
         
         let mut start_time = Instant::now();
         let mut start_cycles = unsafe { _rdtsc() }; 
@@ -272,6 +272,13 @@ fn main()
         for i in 0..NUM_PARTICLES
         {
             insertParticle(0, i, &mut arena, &mut particles);
+        }
+
+        if j == 0 {
+            let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+            let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
+            let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
+            println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
         }
 
         computeMassDistribution(0, &mut arena, &particles);

@@ -57,7 +57,7 @@ fn main() {
     let mut total_force_time_ms = 0.0;
     let mut total_cycles_force: u64 = 0;
 
-    for _ in 0..FRAMES {
+    for j in 0..FRAMES {
         
         let start_time = Instant::now();
         let start_cycles = unsafe { _rdtsc() }; 
@@ -90,6 +90,12 @@ fn main() {
 
         let end_cycles = unsafe { _rdtsc() };
         let end_time = start_time.elapsed();
+
+        if j == 0 {
+            let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+            let totalAppMemMB = (particlesMem) as f64 / (1024.0 * 1024.0);
+            println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+        }
 
         // Całkowanie Euler'a (Aktualizacja pozycji)
         for i in 0..NUM_PARTICLES {

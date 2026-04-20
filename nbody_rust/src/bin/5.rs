@@ -16,6 +16,7 @@ const TIME_STEP: f32 = 0.016;
 const THETA: f32 = 0.4;
 const G : f32 = 1.0;
 
+#[derive(Clone)]
 struct Particle {
     velocity_x: f32,
     velocity_y: f32,
@@ -214,39 +215,10 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
     
     (acc_x, acc_y)
 }
- 
-fn main()
+
+fn mainLoop(particles: &mut Vec<Particle>) -> f64
 {
-    let mut particles: Vec<Particle> = Vec::with_capacity(NUM_PARTICLES);
-    let mut arena: Vec<Node> = Vec::with_capacity(10 * NUM_PARTICLES);
-    
-    let path = Path::new("start_10k.txt");
-    let file = match File::open(&path) {
-        Ok(f) => f,
-        Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt.");
-            std::process::exit(1);
-        }
-    };
-    
-    let reader = io::BufReader::new(file);
-
-    for line in reader.lines() {
-        let line = line.expect("Blad odczytu linii z pliku");
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() == 5 {
-            particles.push(Particle {
-                pos_x: parts[0].parse().unwrap(),
-                pos_y: parts[1].parse().unwrap(),
-                velocity_x: parts[2].parse().unwrap(),
-                velocity_y: parts[3].parse().unwrap(),
-                mass: parts[4].parse().unwrap(),
-                acc_x: 0.0,
-                acc_y: 0.0,
-            });
-        }
-    }
-
+    let mut arena = Vec::new();
     let mut total_force_time_ms = 0.0;
     let mut total_tree_time_ms = 0.0;
     let mut total_cycles_force: u64 = 0;
@@ -262,7 +234,7 @@ fn main()
         let mut minY = particles[0].pos_y;
         let mut maxY = particles[0].pos_y;
 
-        for p in &particles
+        for p in particles.iter()
         {
             if p.pos_x < minX { minX = p.pos_x; }
             if p.pos_x > maxX { maxX = p.pos_x; }
@@ -285,7 +257,7 @@ fn main()
 
         for i in 0..NUM_PARTICLES
         {
-            insertParticle(0, i, &mut arena, &mut particles);
+            insertParticle(0, i, &mut arena, particles);
         }
 
         computeMassDistribution(0, &mut arena, &particles);
@@ -359,5 +331,71 @@ fn main()
             }
         }
         Err(_) => { eprintln!("file error."); }
+    }
+
+    return total_force_time_ms / (FRAMES as f64);
+}
+ 
+fn main()
+{
+    let mut initial_particles: Vec<Particle> = Vec::new();
+    
+    let path = Path::new("start_10k.txt");
+    let file = match File::open(&path) {
+        Ok(f) => f,
+        Err(_) => {
+            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt.");
+            std::process::exit(1);
+        }
+    };
+    
+    let reader = io::BufReader::new(file);
+
+    for line in reader.lines() {
+        let line = line.expect("Blad odczytu linii z pliku");
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() == 5 {
+            initial_particles.push(Particle {
+                pos_x: parts[0].parse().unwrap(),
+                pos_y: parts[1].parse().unwrap(),
+                velocity_x: parts[2].parse().unwrap(),
+                velocity_y: parts[3].parse().unwrap(),
+                mass: parts[4].parse().unwrap(),
+                acc_x: 0.0,
+                acc_y: 0.0,
+            });
+        }
+    }
+    
+    let threadCounts = [1, 2, 4, 6, 8, 16, 32];
+    let mut results: Vec<f64> = Vec::new();
+    
+    for &threads in &threadCounts {
+        println!("\n--- Symulacja z {} wątkami ---", threads);
+        
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .unwrap();
+            
+        let mut current_particles = initial_particles.clone();
+
+        let time_ms = pool.install(|| {
+            mainLoop(&mut current_particles)
+        });
+        
+        results.push(time_ms);
+    }
+    
+    println!("\n--- WYNIKI SKALOWANIA ---");
+    for t in 0..threadCounts.len() {
+        let p = threadCounts[t] as f64;
+        let timeP = results[t];
+
+        let speedup = results[0] / timeP;
+        let efficiency = speedup / p;
+
+        println!("Watki: {:>2}, Czas: {:.4} ms, Speedup: {:.2}x, Efficiency: {:.2}%", 
+                 threadCounts[t], timeP, speedup, efficiency * 100.0);
     }
 }
