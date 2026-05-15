@@ -3,11 +3,12 @@
 #include "timer.hpp"
 #include <fstream>
 #include <cmath>
+#include <iomanip>
 
 constexpr float G = 1; // Gravitational constant
 constexpr float TIME_STEP = 0.016f; // Time step for the simulation
-constexpr float FRAMES = 100;
-constexpr int NUM_PARTICLES = 50000;
+constexpr float FRAMES = 300;
+constexpr int NUM_PARTICLES = 100000;
 
 struct Particle
 {
@@ -20,7 +21,39 @@ struct Particle
     float posY{0.0f};
 };
 
+struct PhysicsMetrics {
+    double totalMomentumX = 0.0;
+    double totalMomentumY = 0.0;
+    double totalKineticEnergy = 0.0;
+    double centerX = 0.0;
+    double centerY = 0.0;
+};
 
+PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particles) {
+    PhysicsMetrics m;
+    double totalMass = 0.0;
+
+    for (const auto& p : particles) {
+        double mass = static_cast<double>(p.mass);
+        double vx = static_cast<double>(p.velocityX);
+        double vy = static_cast<double>(p.velocityY);
+        double px = static_cast<double>(p.posX);
+        double py = static_cast<double>(p.posY);
+
+        m.totalMomentumX += mass * vx;
+        m.totalMomentumY += mass * vy;
+        m.totalKineticEnergy += 0.5 * mass * (vx * vx + vy * vy);
+
+        m.centerX += mass * px;
+        m.centerY += mass * py;
+        totalMass += mass;
+    }
+
+    m.centerX /= totalMass;
+    m.centerY /= totalMass;
+
+    return m;
+}
 
 int main()
 {
@@ -29,12 +62,12 @@ int main()
     float time = 0.0f;
     std::vector<Particle> particles;
     unsigned long long totalCycles = 0;
-    particles.reserve(NUM_PARTICLES);
+    //particles.reserve(NUM_PARTICLES);
 
-    std::ifstream inFile("start_50k.txt");
+    std::ifstream inFile("start_100k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_100k.txt!\n";
         return 1;
     }
 
@@ -49,15 +82,14 @@ int main()
     inFile.close();
     for (int frame = 0; frame < FRAMES; ++frame)
     {
-        // if (frame == 0) {
-        //     // Rozmiar cząstek:
-        //     size_t particlesMem = particles.capacity() * sizeof(Particle);
-        //     // Maksymalny rozmiar zarezerwowanej areny drzewa: 
-            
-        //     double totalAppMemMB = static_cast<double>(particlesMem) / (1024.0 * 1024.0);
-        //     std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-        // }
-        timer.start(); 
+        if (frame == 0) {
+            size_t particlesMem = particles.capacity() * sizeof(Particle);
+            double totalAppMemMB = static_cast<double>(particlesMem) / (1024.0 * 1024.0);
+            std::cout << std::fixed << std::setprecision(6);
+            std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+            std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
+        }
+        timer.start();
         for (int i = 0; i < NUM_PARTICLES; ++i)
         {
             float accX = 0.0f;
@@ -98,20 +130,28 @@ int main()
             particle.velocityY += particle.accY * TIME_STEP;
             particle.posX += particle.velocityX * TIME_STEP;
             particle.posY += particle.velocityY * TIME_STEP;
-            particle.accX = 0.0f; 
-            particle.accY = 0.0f; 
+            particle.accX = 0.0f;
+            particle.accY = 0.0f;
+        }
+        if (frame == 0 or frame == FRAMES - 1) {
+            auto metrics = calculatePhysicsDiagnostics(particles);
+            std::cout << "Frame " << frame << ":\n";
+            std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
+            std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
+            std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         }
     }
     std::cout << "Czas liczenia sil:  " << (time / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (time) << " ms\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCycles / FRAMES) << " cykli / klatke\n";
 
-    std::ofstream outFile("wzorzec_50k.txt");
+    std::ofstream outFile("wzorzec_100k.txt");
+    outFile << std::fixed << std::setprecision(6);
     for (const auto& p : particles)
     {
         outFile << p.posX << " " << p.posY << "\n";
     }
     outFile.close();
-    std::cout << "Zapisano pozycje referencyjne do pliku wzorzec_10k.txt\n";
+    std::cout << "Zapisano pozycje referencyjne do pliku wzorzec_100k.txt\n";
     return 0;
 }

@@ -8,12 +8,13 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const NUM_PARTICLES: usize = 10000;
+const NUM_PARTICLES: usize = 100000;
 const FRAMES: usize = 300;
 const TIME_STEP: f32 = 0.016; 
 const THETA: f32 = 0.4;
 const G : f32 = 1.0;
 
+#[derive(Clone)]
 struct Particle {
     velocity_x: f32,
     velocity_y: f32,
@@ -197,17 +198,126 @@ fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>
         }
     }
 }
- 
+
+fn validateForceAccuracy(current_frame: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>) 
+{
+    println!("\n WALIDACJA DOKLADNOSCI SILY (Klatka {})", current_frame);
+
+    let mut total_relative_error: f64 = 0.0;
+    let mut max_relative_error: f64 = 0.0;
+    let mut valid_particles: usize = 0;
+
+    // Kopia całego wektora cząstek (odpowiednik: std::vector<Particle> tempParticles = particles;)
+    let mut temp_particles = particles.clone();
+
+    for i in 0..particles.len() 
+    {
+        // A. Prawdziwa siła (Brute Force O(N^2))
+        let mut exact_acc_x: f32 = 0.0;
+        let mut exact_acc_y: f32 = 0.0;
+
+        for j in 0..particles.len() 
+        {
+            if i == j { continue; }
+            
+            let dx = particles[j].pos_x - particles[i].pos_x;
+            let dy = particles[j].pos_y - particles[i].pos_y;
+            let dist_sq = dx * dx + dy * dy;
+
+            if dist_sq < 1e-5 { continue; }
+
+            let dist = dist_sq.sqrt();
+            let acc = G * particles[j].mass / (dist_sq + 1.0);
+            exact_acc_x += acc * (dx / dist);
+            exact_acc_y += acc * (dy / dist);
+        }
+
+        // B. Przybliżona siła z Drzewa (Barnes-Hut O(N log N))
+        temp_particles[i].acc_x = 0.0;
+        temp_particles[i].acc_y = 0.0;
+        
+        // Obliczenia na kopii (zwróć uwagę na kolejność argumentów zgodnie z Twoją funkcją)
+        calculateForces(i, arena, &mut temp_particles);
+
+        let bh_acc_x = temp_particles[i].acc_x;
+        let bh_acc_y = temp_particles[i].acc_y;
+
+        // C. Matematyka błędu względnego
+        let diff_x = bh_acc_x - exact_acc_x;
+        let diff_y = bh_acc_y - exact_acc_y;
+
+        let exact_norm = (exact_acc_x * exact_acc_x + exact_acc_y * exact_acc_y).sqrt();
+        let diff_norm = (diff_x * diff_x + diff_y * diff_y).sqrt();
+
+        if exact_norm > 1e-6 && diff_x != 0.0 && diff_y != 0.0 
+        {
+            let rel_error = (diff_norm / exact_norm) as f64;
+            total_relative_error += rel_error;
+            
+            if rel_error > max_relative_error {
+                max_relative_error = rel_error;
+            }
+            valid_particles += 1;
+        }
+    }
+
+    if valid_particles > 0 {
+        println!("Sredni blad wzgledny sily: {:.6} %", (total_relative_error / valid_particles as f64) * 100.0);
+        println!("Maksymalny blad wzgledny:  {:.6} %", max_relative_error * 100.0);
+    }
+}
+
+// pub struct PhysicsMetrics {
+//     pub total_momentum_x: f64,
+//     pub total_momentum_y: f64,
+//     pub total_kinetic_energy: f64,
+//     pub center_x: f64,
+//     pub center_y: f64,
+// }
+
+// pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
+//     let mut m = PhysicsMetrics {
+//         total_momentum_x: 0.0,
+//         total_momentum_y: 0.0,
+//         total_kinetic_energy: 0.0,
+//         center_x: 0.0,
+//         center_y: 0.0,
+//     };
+//     let mut total_mass = 0.0;
+
+//     for p in particles {
+//         // Rzutowanie na f64 chroni przed utratą precyzji
+//         let mass = p.mass as f64;
+//         let vx = p.velocity_x as f64;
+//         let vy = p.velocity_y as f64;
+//         let px = p.pos_x as f64;
+//         let py = p.pos_y as f64;
+
+//         m.total_momentum_x += mass * vx;
+//         m.total_momentum_y += mass * vy;
+//         m.total_kinetic_energy += 0.5 * mass * (vx * vx + vy * vy);
+
+//         m.center_x += mass * px;
+//         m.center_y += mass * py;
+//         total_mass += mass;
+//     }
+
+//     m.center_x /= total_mass;
+//     m.center_y /= total_mass;
+
+//     m
+// }
+
 fn main()
 {
     let mut particles = Vec::new();
     let mut arena = Vec::new();
     
-    let path = Path::new("start_10k.txt");
+    let path = Path::new("start_100k.txt");
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt. Czy na pewno wygenerowales plik?");
+            eprintln!("Blad: Nie mozna otworzyc pliku start_50k.txt. Czy na pewno wygenerowales plik?");
             std::process::exit(1);
         }
     };
@@ -279,6 +389,9 @@ fn main()
             let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
             let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
             println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+            println!("Stworzono {} wezlow drzewa", arena.len());
+            println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
+            println!("Size of Node (V4/V5): {:.6} bytes", std::mem::size_of::<Node>());
         }
 
         computeMassDistribution(0, &mut arena, &particles);
@@ -304,6 +417,14 @@ fn main()
         }
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
         total_cycles_force += unsafe { _rdtsc() } - start_cycles;
+
+        // if j == 0 || j == FRAMES - 1 {
+        //     let metrics = calculate_physics_diagnostics(&particles);
+        //     println!("Frame {}:", j);
+        //     println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
+        //     println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
+        //     println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
+        // }
 }
 
     println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
@@ -312,56 +433,56 @@ fn main()
     println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
     println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
 
-    let ref_path = Path::new("wzorzec_10k.txt");
-    match File::open(&ref_path) {
-        Ok(ref_file) => {
-            let ref_reader = io::BufReader::new(ref_file);
-            let mut total_error = 0.0f32;
-            let mut particle_count = 0usize;
-            let mut current_error = 0.0f32;
-            let mut max_error = 0.0f32;
+    // let ref_path = Path::new("wzorzec_50k.txt");
+    // match File::open(&ref_path) {
+    //     Ok(ref_file) => {
+    //         let ref_reader = io::BufReader::new(ref_file);
+    //         let mut total_error = 0.0f32;
+    //         let mut particle_count = 0usize;
+    //         let mut current_error = 0.0f32;
+    //         let mut max_error = 0.0f32;
 
-            for (idx, line) in ref_reader.lines().enumerate() {
-                if idx >= NUM_PARTICLES {
-                    break;
-                }
+    //         for (idx, line) in ref_reader.lines().enumerate() {
+    //             if idx >= NUM_PARTICLES {
+    //                 break;
+    //             }
                 
-                let line = match line {
-                    Ok(l) => l,
-                    Err(_) => break,
-                };
+    //             let line = match line {
+    //                 Ok(l) => l,
+    //                 Err(_) => break,
+    //             };
 
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    let ref_x: f32 = match parts[0].parse() {
-                        Ok(x) => x,
-                        Err(_) => break,
-                    };
-                    let ref_y: f32 = match parts[1].parse() {
-                        Ok(y) => y,
-                        Err(_) => break,
-                    };
+    //             let parts: Vec<&str> = line.split_whitespace().collect();
+    //             if parts.len() >= 2 {
+    //                 let ref_x: f32 = match parts[0].parse() {
+    //                     Ok(x) => x,
+    //                     Err(_) => break,
+    //                 };
+    //                 let ref_y: f32 = match parts[1].parse() {
+    //                     Ok(y) => y,
+    //                     Err(_) => break,
+    //                 };
 
-                    let dx = particles[idx].pos_x - ref_x;
-                    let dy = particles[idx].pos_y - ref_y;
-                    current_error = (dx * dx + dy * dy).sqrt();
-                    total_error += current_error;
-                    if current_error > max_error {
-                        max_error = current_error;
-                    }
-                    particle_count += 1;
-                }
-            }
+    //                 let dx = particles[idx].pos_x - ref_x;
+    //                 let dy = particles[idx].pos_y - ref_y;
+    //                 current_error = (dx * dx + dy * dy).sqrt();
+    //                 total_error += current_error;
+    //                 if current_error > max_error {
+    //                     max_error = current_error;
+    //                 }
+    //                 particle_count += 1;
+    //             }
+    //         }
 
-            if particle_count > 0 {
-                let mean_absolute_error = total_error / particle_count as f32;
-                println!("Sredni blad pozycji (MAE): {} jednostek", mean_absolute_error);
-                println!("Maksymalny blad pozycji: {} jednostek", max_error);
-            }
-        }
-        Err(_) => {
-            eprintln!("file error.");
-        }
-    }
+    //         if particle_count > 0 {
+    //             let mean_absolute_error = total_error / particle_count as f32;
+    //             println!("Sredni blad pozycji (MAE): {:.6} jednostek", mean_absolute_error);
+    //             println!("Maksymalny blad pozycji: {:.6} jednostek", max_error);
+    //         }
+    //     }
+    //     Err(_) => {
+    //         eprintln!("file error.");
+    //     }
+    // }
 }
 

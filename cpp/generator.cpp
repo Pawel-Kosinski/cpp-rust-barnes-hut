@@ -2,17 +2,18 @@
 #include <fstream>
 #include <cmath>
 #include <random>
+#include <iomanip>
 
-constexpr int NUM_PARTICLES = 50000;
+constexpr int NUM_PARTICLES = 1000000;
 constexpr float PI = 3.14159265359f;
-constexpr float G = 1.0f; // Dodano brakujące G
+constexpr float G = 1.0f; 
 
 int main()
 {
     std::mt19937 rng(1337);
     std::uniform_real_distribution<float> dist(0.0f, 1.0f);
     
-    std::ofstream outFile("start_50k.txt");
+    std::ofstream outFile("start_1000k.txt");
     if (!outFile) {
         std::cerr << "Blad zapisu pliku!\n";
         return 1;
@@ -56,6 +57,7 @@ int main()
 
         float velocityX = -v * std::sin(theta);
         float velocityY =  v * std::cos(theta);
+        outFile << std::fixed << std::setprecision(6);
 
         outFile << posX << " " << posY << " " 
                 << velocityX << " " << velocityY << " " 

@@ -6,11 +6,9 @@ use std::arch::x86_64::_rdtsc;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+use rayon::{ThreadPoolBuilder, prelude::*};
 
-// --- NOWY IMPORT ---
-use rayon::prelude::*;
-
-const NUM_PARTICLES: usize = 10000;
+const NUM_PARTICLES: usize = 500000;
 const FRAMES: usize = 300;
 const TIME_STEP: f32 = 0.016; 
 const THETA: f32 = 0.4;
@@ -78,13 +76,6 @@ fn threadTree(nodeIdx: usize, nextIdx: usize, arena: &mut Vec<Node>)
 
 fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles: &mut Vec<Particle>)
 {
-    // =========================================================
-    // OCHRONA PRZED NIESKOŃCZONĄ REKURENCJĄ I ZBŁĘDNĄ PRECYZJĄ F32
-    // =========================================================
-    if arena[nodeIdx].half_size < 1e-4 {
-        return; 
-    }
-
     if arena[nodeIdx].particle_index != usize::MAX
     {
         let oldIdx: usize = arena[nodeIdx].particle_index;
@@ -216,15 +207,87 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
     (acc_x, acc_y)
 }
 
-fn mainLoop(particles: &mut Vec<Particle>) -> f64
+//  pub struct PhysicsMetrics {
+//     pub total_momentum_x: f64,
+//     pub total_momentum_y: f64,
+//     pub total_kinetic_energy: f64,
+//     pub center_x: f64,
+//     pub center_y: f64,
+// }
+
+// pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
+//     let mut m = PhysicsMetrics {
+//         total_momentum_x: 0.0,
+//         total_momentum_y: 0.0,
+//         total_kinetic_energy: 0.0,
+//         center_x: 0.0,
+//         center_y: 0.0,
+//     };
+//     let mut total_mass = 0.0;
+
+//     for p in particles {
+//         // Rzutowanie na f64 chroni przed utratą precyzji
+//         let mass = p.mass as f64;
+//         let vx = p.velocity_x as f64;
+//         let vy = p.velocity_y as f64;
+//         let px = p.pos_x as f64;
+//         let py = p.pos_y as f64;
+
+//         m.total_momentum_x += mass * vx;
+//         m.total_momentum_y += mass * vy;
+//         m.total_kinetic_energy += 0.5 * mass * (vx * vx + vy * vy);
+        
+//         m.center_x += mass * px;
+//         m.center_y += mass * py;
+//         total_mass += mass;
+//     }
+
+//     m.center_x /= total_mass;
+//     m.center_y /= total_mass;
+
+//     m
+// }
+
+fn main()
 {
-    let mut arena = Vec::new();
+    let mut particles = Vec::new();
+    //let mut arena: Vec<Node> = Vec::with_capacity(3 * NUM_PARTICLES);
+    let mut arena: Vec<Node> = Vec::new();
+    ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
+    
+    let path = Path::new("start_500k.txt");
+    let file = match File::open(&path) {
+        Ok(f) => f,
+        Err(_) => {
+            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt.");
+            std::process::exit(1);
+        }
+    };
+    
+    let reader = io::BufReader::new(file);
+
+    for line in reader.lines() {
+        let line = line.expect("Blad odczytu linii z pliku");
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() == 5 {
+            particles.push(Particle {
+                pos_x: parts[0].parse().unwrap(),
+                pos_y: parts[1].parse().unwrap(),
+                velocity_x: parts[2].parse().unwrap(),
+                velocity_y: parts[3].parse().unwrap(),
+                mass: parts[4].parse().unwrap(),
+                acc_x: 0.0,
+                acc_y: 0.0,
+            });
+        }
+    }
+
     let mut total_force_time_ms = 0.0;
     let mut total_tree_time_ms = 0.0;
     let mut total_cycles_force: u64 = 0;
     let mut total_cycles_tree: u64 = 0;
 
-    for _ in 0..FRAMES {
+    for j in 0..FRAMES {
         
         let mut start_time = Instant::now();
         let mut start_cycles = unsafe { _rdtsc() }; 
@@ -234,7 +297,7 @@ fn mainLoop(particles: &mut Vec<Particle>) -> f64
         let mut minY = particles[0].pos_y;
         let mut maxY = particles[0].pos_y;
 
-        for p in particles.iter()
+        for p in &particles
         {
             if p.pos_x < minX { minX = p.pos_x; }
             if p.pos_x > maxX { maxX = p.pos_x; }
@@ -257,14 +320,28 @@ fn mainLoop(particles: &mut Vec<Particle>) -> f64
 
         for i in 0..NUM_PARTICLES
         {
-            insertParticle(0, i, &mut arena, particles);
+            insertParticle(0, i, &mut arena, &mut particles);
         }
+        // if j == 0 {
+        //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+        //     let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
+        //     let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
+        //     println!("Zuzycie pamieci algorytmu: {:.6} MB", totalAppMemMB);
+        //     println!("Stworzono {} wezlow drzewa", arena.len());
+        //     println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
+        //     println!("Size of Node (V4/V5): {:.6} bytes", std::mem::size_of::<Node>());
+        // }
 
         computeMassDistribution(0, &mut arena, &particles);
         threadTree(0, usize::MAX, &mut arena);
         
         total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
         total_cycles_tree += unsafe { _rdtsc() } - start_cycles;
+
+        //  if j == 0 {
+        //     println!("Czas budowy drzewa klatka 0: {:.4} ms", total_tree_time_ms);
+        //     println!("Cykle budowy drzewa klatka 0: {} cykli", total_cycles_tree);
+        // }
 
         start_time = Instant::now();
         start_cycles = unsafe { _rdtsc() };
@@ -289,6 +366,14 @@ fn mainLoop(particles: &mut Vec<Particle>) -> f64
         
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
         total_cycles_force += unsafe { _rdtsc() } - start_cycles;
+
+        // if j % 25 == 0 || j == FRAMES - 1 {
+        //     let metrics = calculate_physics_diagnostics(&particles);
+        //     println!("Frame {}:", j);
+        //     println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
+        //     println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
+        //     println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
+        // }
     }
 
     println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
@@ -297,105 +382,39 @@ fn mainLoop(particles: &mut Vec<Particle>) -> f64
     println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
     println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
 
-    let ref_path = Path::new("wzorzec_10k.txt");
-    match File::open(&ref_path) {
-        Ok(ref_file) => {
-            let ref_reader = io::BufReader::new(ref_file);
-            let mut total_error = 0.0f32;
-            let mut particle_count = 0usize;
-            let mut current_error = 0.0f32;
-            let mut max_error = 0.0f32;
+    // let ref_path = Path::new("wzorzec_50k.txt");
+    // match File::open(&ref_path) {
+    //     Ok(ref_file) => {
+    //         let ref_reader = io::BufReader::new(ref_file);
+    //         let mut total_error = 0.0f32;
+    //         let mut particle_count = 0usize;
+    //         let mut current_error = 0.0f32;
+    //         let mut max_error = 0.0f32;
 
-            for (idx, line) in ref_reader.lines().enumerate() {
-                if idx >= NUM_PARTICLES { break; }
-                let line = match line { Ok(l) => l, Err(_) => break, };
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    let ref_x: f32 = match parts[0].parse() { Ok(x) => x, Err(_) => break, };
-                    let ref_y: f32 = match parts[1].parse() { Ok(y) => y, Err(_) => break, };
+    //         for (idx, line) in ref_reader.lines().enumerate() {
+    //             if idx >= NUM_PARTICLES { break; }
+    //             let line = match line { Ok(l) => l, Err(_) => break, };
+    //             let parts: Vec<&str> = line.split_whitespace().collect();
+    //             if parts.len() >= 2 {
+    //                 let ref_x: f32 = match parts[0].parse() { Ok(x) => x, Err(_) => break, };
+    //                 let ref_y: f32 = match parts[1].parse() { Ok(y) => y, Err(_) => break, };
 
-                    let dx = particles[idx].pos_x - ref_x;
-                    let dy = particles[idx].pos_y - ref_y;
-                    current_error = (dx * dx + dy * dy).sqrt();
-                    total_error += current_error;
-                    if current_error > max_error {
-                        max_error = current_error;
-                    }
-                    particle_count += 1;
-                }
-            }
-            if particle_count > 0 {
-                let mean_absolute_error = total_error / particle_count as f32;
-                println!("Sredni blad pozycji (MAE): {} jednostek", mean_absolute_error);
-                println!("Maksymalny blad pozycji: {} jednostek", max_error);
-            }
-        }
-        Err(_) => { eprintln!("file error."); }
-    }
-
-    return total_force_time_ms / (FRAMES as f64);
-}
- 
-fn main()
-{
-    let mut initial_particles: Vec<Particle> = Vec::new();
-    
-    let path = Path::new("start_10k.txt");
-    let file = match File::open(&path) {
-        Ok(f) => f,
-        Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt.");
-            std::process::exit(1);
-        }
-    };
-    
-    let reader = io::BufReader::new(file);
-
-    for line in reader.lines() {
-        let line = line.expect("Blad odczytu linii z pliku");
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() == 5 {
-            initial_particles.push(Particle {
-                pos_x: parts[0].parse().unwrap(),
-                pos_y: parts[1].parse().unwrap(),
-                velocity_x: parts[2].parse().unwrap(),
-                velocity_y: parts[3].parse().unwrap(),
-                mass: parts[4].parse().unwrap(),
-                acc_x: 0.0,
-                acc_y: 0.0,
-            });
-        }
-    }
-    
-    let threadCounts = [1, 2, 4, 6, 8, 16, 32];
-    let mut results: Vec<f64> = Vec::new();
-    
-    for &threads in &threadCounts {
-        println!("\n--- Symulacja z {} wątkami ---", threads);
-        
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(threads)
-            .build()
-            .unwrap();
-            
-        let mut current_particles = initial_particles.clone();
-
-        let time_ms = pool.install(|| {
-            mainLoop(&mut current_particles)
-        });
-        
-        results.push(time_ms);
-    }
-    
-    println!("\n--- WYNIKI SKALOWANIA ---");
-    for t in 0..threadCounts.len() {
-        let p = threadCounts[t] as f64;
-        let timeP = results[t];
-
-        let speedup = results[0] / timeP;
-        let efficiency = speedup / p;
-
-        println!("Watki: {:>2}, Czas: {:.4} ms, Speedup: {:.2}x, Efficiency: {:.2}%", 
-                 threadCounts[t], timeP, speedup, efficiency * 100.0);
-    }
+    //                 let dx = particles[idx].pos_x - ref_x;
+    //                 let dy = particles[idx].pos_y - ref_y;
+    //                 current_error = (dx * dx + dy * dy).sqrt();
+    //                 total_error += current_error;
+    //                 if current_error > max_error {
+    //                     max_error = current_error;
+    //                 }
+    //                 particle_count += 1;
+    //             }
+    //         }
+    //         if particle_count > 0 {
+    //             let mean_absolute_error = total_error / particle_count as f32;
+    //             println!("Sredni blad pozycji (MAE): {:.6} jednostek", mean_absolute_error);
+    //             println!("Maksymalny blad pozycji: {:.6} jednostek", max_error);
+    //         }
+    //     }
+    //     Err(_) => { eprintln!("file error."); }
+    // }
 }

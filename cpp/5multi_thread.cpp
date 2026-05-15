@@ -7,12 +7,13 @@
 #include <omp.h>
 #include <fstream> 
 #include <cmath>
+#include <iomanip>
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
 constexpr float THETA = 0.4;
-constexpr float FRAMES = 100;
-constexpr int NUM_PARTICLES = 50000;
+constexpr float FRAMES = 300;
+constexpr int NUM_PARTICLES = 500000;
 
 struct Particle
 {
@@ -169,9 +170,43 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
     }
 }
 
+struct PhysicsMetrics {
+    double totalMomentumX = 0.0;
+    double totalMomentumY = 0.0;
+    double totalKineticEnergy = 0.0;
+    double centerX = 0.0;
+    double centerY = 0.0;
+};
+
+PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particles) {
+    PhysicsMetrics m;
+    double totalMass = 0.0;
+
+    for (const auto& p : particles) {
+        double mass = static_cast<double>(p.mass);
+        double vx = static_cast<double>(p.velocityX);
+        double vy = static_cast<double>(p.velocityY);
+        double px = static_cast<double>(p.posX);
+        double py = static_cast<double>(p.posY);
+
+        m.totalMomentumX += mass * vx;
+        m.totalMomentumY += mass * vy;
+        m.totalKineticEnergy += 0.5 * mass * (vx * vx + vy * vy);
+        
+        m.centerX += mass * px;
+        m.centerY += mass * py;
+        totalMass += mass;
+    }
+
+    m.centerX /= totalMass;
+    m.centerY /= totalMass;
+
+    return m;
+}
+
 int main()
 {
-    omp_set_num_threads(8);
+    omp_set_num_threads(12);
     srand(42);
     std::vector<Particle> particles;
     std::vector<Node> treeArena;
@@ -181,10 +216,10 @@ int main()
     unsigned long long totalCyclesTree = 0;
     unsigned long long totalCyclesForce = 0;
 
-    std::ifstream inFile("start_50k.txt");
+    std::ifstream inFile("start_500k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_10k.txt!\n";
         return 1;
     }
 
@@ -229,16 +264,19 @@ int main()
         {
             insertParticle(0, i, treeArena, particles);
         }
-        if (frame == 0) {
-            // Rozmiar cząstek:
-            size_t particlesMem = particles.capacity() * sizeof(Particle);
-            // Maksymalny rozmiar zarezerwowanej areny drzewa:
-            size_t treeMem = treeArena.capacity() * sizeof(Node); 
+        // if (frame == 0) {
+        //     // Rozmiar cząstek:
+        //     size_t particlesMem = particles.capacity() * sizeof(Particle);
+        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     size_t treeMem = treeArena.capacity() * sizeof(Node); 
             
-            double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-            std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-            std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
-        }
+        //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
+        //     std::cout << std::fixed << std::setprecision(6);
+        //     std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
+        //     std::cout << "Size of Node (V4/V5): " << sizeof(Node) << " bytes\n";
+        // }
 
         computeMassDistribution(0, treeArena, particles);
         threadTree(0, -1, treeArena);
@@ -267,40 +305,47 @@ int main()
         }
         totalForceTime += timer.stopTime();
         totalCyclesForce += timer.stopCycles();
+        // if (frame % 25 == 0 or frame == FRAMES - 1) {
+        //     auto metrics = calculatePhysicsDiagnostics(particles);
+        //     std::cout << "Frame " << frame << ":\n";
+        //     std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
+        //     std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
+        //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
+        // }
     }
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    std::ifstream outFile("wzorzec_50k.txt");
-    if (!outFile) 
-    {
-        std::cout << "file error.\n";
-    } 
-    else 
-    {
-        float totalError = 0.0f;
-        float maxError = 0.0f;
-        float refX = 0.0f, refY = 0.0f;
+    // std::ifstream outFile("wzorzec_10k.txt");
+    // if (!outFile) 
+    // {
+    //     std::cout << "file error.\n";
+    // } 
+    // else 
+    // {
+    //     float totalError = 0.0f;
+    //     float maxError = 0.0f;
+    //     float refX = 0.0f, refY = 0.0f;
         
-        for (const auto& p : particles)
-        {
-            outFile >> refX >> refY;
+    //     for (const auto& p : particles)
+    //     {
+    //         outFile >> refX >> refY;
             
-            float dx = p.posX - refX;
-            float dy = p.posY - refY;
-            float currentError = std::sqrt(dx * dx + dy * dy);
-            totalError += currentError;
-            if (currentError > maxError) {
-                maxError = currentError; 
-            }
-        }
-        outFile.close();
+    //         float dx = p.posX - refX;
+    //         float dy = p.posY - refY;
+    //         float currentError = std::sqrt(dx * dx + dy * dy);
+    //         totalError += currentError;
+    //         if (currentError > maxError) {
+    //             maxError = currentError; 
+    //         }
+    //     }
+    //     outFile.close();
         
-        float meanAbsoluteError = totalError / NUM_PARTICLES;
-        std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
-        std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
-    }
+    //     float meanAbsoluteError = totalError / NUM_PARTICLES;
+    //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
+    //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
+    // }
     return 0;
 }

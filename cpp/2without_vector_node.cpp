@@ -4,12 +4,13 @@
 #include <iostream>
 #include <fstream> 
 #include <cmath>
+#include <iomanip>
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
 constexpr float THETA = 0.4f;
-constexpr float FRAMES = 100;
-constexpr int NUM_PARTICLES = 50000;
+constexpr float FRAMES = 300;
+constexpr int NUM_PARTICLES = 100000;
 
 struct NodePtr 
 {
@@ -150,10 +151,10 @@ void deleteTreePtr(NodePtr* node)
     delete node; 
 }
 
-int countNodesPtr(NodePtr* node) 
+int countNodesPtr(NodePtr* node)
 {
-    int count = 1; 
-    for (int i = 0; i < 4; ++i) 
+    int count = 1;
+    for (int i = 0; i < 4; ++i)
     {
         if (node->children[i] != nullptr)
         {
@@ -161,6 +162,40 @@ int countNodesPtr(NodePtr* node)
         }
     }
     return count;
+}
+
+struct PhysicsMetrics {
+    double totalMomentumX = 0.0;
+    double totalMomentumY = 0.0;
+    double totalKineticEnergy = 0.0;
+    double centerX = 0.0;
+    double centerY = 0.0;
+};
+
+PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particles) {
+    PhysicsMetrics m;
+    double totalMass = 0.0;
+
+    for (const auto& p : particles) {
+        double mass = static_cast<double>(p.mass);
+        double vx = static_cast<double>(p.velocityX);
+        double vy = static_cast<double>(p.velocityY);
+        double px = static_cast<double>(p.posX);
+        double py = static_cast<double>(p.posY);
+
+        m.totalMomentumX += mass * vx;
+        m.totalMomentumY += mass * vy;
+        m.totalKineticEnergy += 0.5 * mass * (vx * vx + vy * vy);
+
+        m.centerX += mass * px;
+        m.centerY += mass * py;
+        totalMass += mass;
+    }
+
+    m.centerX /= totalMass;
+    m.centerY /= totalMass;
+
+    return m;
 }
 
 int main()
@@ -174,7 +209,7 @@ int main()
     unsigned long long totalCyclesForce = 0;
     particles.reserve(NUM_PARTICLES);
 
-    std::ifstream inFile("start_50k.txt");
+    std::ifstream inFile("start_100k.txt");
     if (!inFile)
     {
         std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
@@ -226,10 +261,13 @@ int main()
             // Maksymalny rozmiar zarezerwowanej areny drzewa:
             int nodeCount = countNodesPtr(rootPtr);
             size_t treeMem = nodeCount * sizeof(NodePtr);
-            
+
+            std::cout << std::fixed << std::setprecision(6);
             double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
             std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
             std::cout << "Stworzono " << nodeCount << " wezlow drzewa.\n";
+            std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
+            std::cout << "Size of NodePtr (V2): " << sizeof(NodePtr) << " bytes\n";
         }
 
         computeMassDistributionPtr(rootPtr, particles);
@@ -255,40 +293,47 @@ int main()
         }
         totalForceTime += timer.stopTime();
         totalCyclesForce += timer.stopCycles();
+        if (frame == 0 or frame == FRAMES - 1) {
+            auto metrics = calculatePhysicsDiagnostics(particles);
+            std::cout << "Frame " << frame << ":\n";
+            std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
+            std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
+            std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
+        }
     }
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    std::ifstream outFile("wzorzec_50k.txt");
-    if (!outFile) 
-    {
-        std::cout << "file error.\n";
-    } 
-    else 
-    {
-        float totalError = 0.0f;
-        float maxError = 0.0f;
-        float refX = 0.0f, refY = 0.0f;
+    // std::ifstream outFile("wzorzec_50k.txt");
+    // if (!outFile) 
+    // {
+    //     std::cout << "file error.\n";
+    // } 
+    // else 
+    // {
+    //     float totalError = 0.0f;
+    //     float maxError = 0.0f;
+    //     float refX = 0.0f, refY = 0.0f;
         
-        for (const auto& p : particles)
-        {
-            outFile >> refX >> refY;
+    //     for (const auto& p : particles)
+    //     {
+    //         outFile >> refX >> refY;
             
-            float dx = p.posX - refX;
-            float dy = p.posY - refY;
-            float currentError = std::sqrt(dx * dx + dy * dy);
-            totalError += currentError;
-            if (currentError > maxError) {
-                maxError = currentError; 
-            }
-        }
-        outFile.close();
+    //         float dx = p.posX - refX;
+    //         float dy = p.posY - refY;
+    //         float currentError = std::sqrt(dx * dx + dy * dy);
+    //         totalError += currentError;
+    //         if (currentError > maxError) {
+    //             maxError = currentError; 
+    //         }
+    //     }
+    //     outFile.close();
         
-        float meanAbsoluteError = totalError / NUM_PARTICLES;
-        std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
-        std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
-    }
+    //     float meanAbsoluteError = totalError / NUM_PARTICLES;
+    //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
+    //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
+    // }
     return 0;
 }
