@@ -6,6 +6,7 @@
 !*.cpp
 !*.hpp
 !*.rs
+!*.md
 
 # Track Cargo files
 !Cargo.toml
