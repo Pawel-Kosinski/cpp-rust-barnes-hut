@@ -4,7 +4,7 @@
 #include <random>
 #include <iomanip>
 
-constexpr int NUM_PARTICLES = 1000000;
+constexpr int NUM_PARTICLES = 10000000;
 constexpr float PI = 3.14159265359f;
 constexpr float G = 1.0f; 
 
@@ -13,7 +13,7 @@ int main()
     std::mt19937 rng(1337);
     std::uniform_real_distribution<float> dist(0.0f, 1.0f);
     
-    std::ofstream outFile("start_1000k.txt");
+    std::ofstream outFile("start_10kk.txt");
     if (!outFile) {
         std::cerr << "Blad zapisu pliku!\n";
         return 1;

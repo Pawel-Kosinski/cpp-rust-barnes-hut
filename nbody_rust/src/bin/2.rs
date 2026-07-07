@@ -7,10 +7,10 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const NUM_PARTICLES: usize = 100000;
-const FRAMES: usize = 300;
+const NUM_PARTICLES: usize = 1000000;
+const FRAMES: usize = 50;
 const TIME_STEP: f32 = 0.016; 
-const THETA: f32 = 0.4;
+const THETA: f32 = 0.3;
 const G : f32 = 1.0;
 
 struct Particle {
@@ -144,15 +144,16 @@ fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>
     let dx = node.center_of_mass_x - p.pos_x;
     let dy = node.center_of_mass_y - p.pos_y;
     let dist_sq = dx * dx + dy * dy;
-    let dist = dist_sq.sqrt();
+    //let dist = dist_sq.sqrt();
 
     if dist_sq < 1e-5 {return;}
 
-    let s = node.half_size * 2.0;
+    let r_sq = 2.0 * node.half_size * node.half_size;
 
-    if (s / dist) < THETA || node.children[0].is_none()
+    if r_sq < THETA * THETA * dist_sq || node.children[0].is_none()
     {
-        let acc = G *node.mass / (dist_sq + 1.0);
+        let dist = dist_sq.sqrt(); 
+        let acc = G * node.mass / (dist_sq + 1.0);
         particles[pIdx].acc_x += acc * (dx / dist);
         particles[pIdx].acc_y += acc * (dy / dist);
     }
@@ -219,11 +220,67 @@ pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     m
 }
 
-fn main()
+fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
+    println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
+
+    let mut sum_diff_sq: f64 = 0.0;
+    let mut sum_bf_sq: f64 = 0.0;
+    let mut local_relative_errors = Vec::with_capacity(bh_particles.len());
+
+    for i in 0..bh_particles.len() {
+        let mut exact_acc_x: f32 = 0.0;
+        let mut exact_acc_y: f32 = 0.0;
+
+        for j in 0..bh_particles.len() {
+            if i == j { continue; }
+            let dx = bh_particles[j].pos_x - bh_particles[i].pos_x;
+            let dy = bh_particles[j].pos_y - bh_particles[i].pos_y;
+            let dist_sq = dx * dx + dy * dy;
+
+            if dist_sq < 1e-5 { continue; }
+
+            let dist = dist_sq.sqrt();
+            let acc = G * bh_particles[j].mass / (dist_sq + 1.0);
+            exact_acc_x += acc * (dx / dist);
+            exact_acc_y += acc * (dy / dist);
+        }
+
+        let diff_x = (bh_particles[i].acc_x - exact_acc_x) as f64;
+        let diff_y = (bh_particles[i].acc_y - exact_acc_y) as f64;
+
+        let diff_sq = diff_x * diff_x + diff_y * diff_y;
+        let bf_sq = (exact_acc_x * exact_acc_x + exact_acc_y * exact_acc_y) as f64;
+
+        sum_diff_sq += diff_sq;
+        sum_bf_sq += bf_sq;
+
+        let exact_norm = bf_sq.sqrt();
+        let diff_norm = diff_sq.sqrt();
+
+        if exact_norm > 1e-6 {
+            local_relative_errors.push(diff_norm / exact_norm);
+        }
+    }
+
+    let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
+    
+    local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut p95_error = 0.0;
+    if !local_relative_errors.is_empty() {
+        let p95_index = (0.95 * local_relative_errors.len() as f64) as usize;
+        p95_error = local_relative_errors[p95_index];
+    }
+
+    println!("Globalny blad sily (RMS): {:.4} %", rms_error * 100.0);
+    println!("Blad 95. percentyla:      {:.4} %", p95_error * 100.0);
+    println!("--------------------------------------------------");
+}
+
+fn mainMain()
 {
     let mut particles = Vec::new();
     
-    let path = Path::new("start_100k.txt");
+    let path = Path::new("start_1000k.txt");
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
@@ -291,17 +348,17 @@ fn main()
         {
             insertParticlePtr(&mut root, j, &mut particles);
         }
-        if i == 0 {
-            let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
-            let nodeCount = countNodesPtr(&root);
-            let treeMem = (nodeCount as usize) * std::mem::size_of::<NodePtr>();
-            let totalAppMemMB = (particlesMem + treeMem) as f64 / (1024.0 * 1024.0);
+        // if i == 0 {
+        //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+        //     let nodeCount = countNodesPtr(&root);
+        //     let treeMem = (nodeCount as usize) * std::mem::size_of::<NodePtr>();
+        //     let totalAppMemMB = (particlesMem + treeMem) as f64 / (1024.0 * 1024.0);
 
-            println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
-            println!("Stworzono {} wezlow drzewa", nodeCount);
-            println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
-            println!("Size of NodePtr (V2): {:.6} bytes", std::mem::size_of::<NodePtr>());
-        }
+        //     println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+        //     println!("Stworzono {} wezlow drzewa", nodeCount);
+        //     println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
+        //     println!("Size of NodePtr (V2): {:.6} bytes", std::mem::size_of::<NodePtr>());
+        // }
 
         computeMassDistributionPtr(&mut root, &particles);
         total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
@@ -314,6 +371,11 @@ fn main()
             calculateForcesPtr(k, &root, &mut particles);
         }
 
+
+        // if i == FRAMES - 1 || i == 0 || i == 150{
+        //     validateForceAccuracy(i, &particles);
+        // }
+
         for p in &mut particles
         {
             p.velocity_x += p.acc_x * TIME_STEP;
@@ -323,17 +385,17 @@ fn main()
             p.acc_x = 0.0;
             p.acc_y = 0.0;
         }
-
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
         total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
-        if i == 0 || i == FRAMES - 1 {
-            let metrics = calculate_physics_diagnostics(&particles);
-            println!("Frame {}:", i);
-            println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
-            println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
-            println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
-        }
+
+        // if i == 0 || i == FRAMES - 1 {
+        //     let metrics = calculate_physics_diagnostics(&particles);
+        //     println!("Frame {}:", i);
+        //     println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
+        //     println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
+        //     println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
+        // }
 }
 
     println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
@@ -342,7 +404,7 @@ fn main()
     println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
     println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
 
-    // let ref_path = Path::new("wzorzec_50k.txt");
+    // let ref_path = Path::new("wzorzec_1000k.txt");
     // match File::open(&ref_path) {
     //     Ok(ref_file) => {
     //         let ref_reader = io::BufReader::new(ref_file);
@@ -395,3 +457,9 @@ fn main()
     // }
 }
 
+fn main()
+{
+    for _ in 0..3 {
+        mainMain();
+    }
+}

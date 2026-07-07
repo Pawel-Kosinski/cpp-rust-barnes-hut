@@ -11,9 +11,10 @@
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
-constexpr float THETA = 0.4;
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 500000;
+constexpr float THETA = 0.3f;
+constexpr float FRAMES = 10;
+constexpr int NUM_PARTICLES = 5000000;
+std::string inputFile = "start_5000k.txt";
 
 struct Particle
 {
@@ -47,10 +48,11 @@ void insertParticle(int nodeIdx, int pIdx, std::vector<Node>& arena, std::vector
     if (arena[nodeIdx].particleIndex != -1) 
     {
         int oldIdx = arena[nodeIdx].particleIndex;
-        if (particles[pIdx].posX == particles[oldIdx].posX && 
-            particles[pIdx].posY == particles[oldIdx].posY) 
+        float shift = 0.0001f;
+        while (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY) 
         {
-            particles[pIdx].posX += 0.0001f;
+            particles[pIdx].posX += shift;
+            shift *= 2.0f;
         }
     }
 
@@ -146,7 +148,6 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
         float dx = node.centerX - p.posX;
         float dy = node.centerY - p.posY;
         float distSq = dx * dx + dy * dy;
-        float dist = std::sqrt(distSq);
 
         if (distSq < 1e-5f) 
         {
@@ -154,9 +155,12 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
             continue;
         }
 
-        float s = node.halfSize * 2.0f;
-        if ((s / dist) < THETA || node.children[0] == -1)
+        float side_length = node.halfSize * 2.0f;
+        // if ((s / dist) < THETA 
+        float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+        if (r_c_sq < THETA * THETA * distSq || node.children[0] == -1)
         {
+            float dist = std::sqrt(distSq);
             float acc = G * node.mass / (distSq + 1.0f);
             p.accX += acc * (dx / dist);
             p.accY += acc * (dy / dist);
@@ -204,7 +208,74 @@ PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particle
     return m;
 }
 
-int main()
+void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_particles)
+{
+    std::cout << "\n--- WALIDACJA DOKLADNOSCI SILY (Klatka " << currentFrame << ") ---\n";
+
+    double sum_diff_sq = 0.0;
+    double sum_bf_sq = 0.0;
+    std::vector<double> local_relative_errors;
+    local_relative_errors.reserve(bh_particles.size());
+
+    // Obliczamy referencyjne siły O(N^2) na aktualnych pozycjach Barnes-Hut
+    #pragma omp parallel for reduction(+:sum_diff_sq, sum_bf_sq) schedule(dynamic, 32)
+    for (int i = 0; i < bh_particles.size(); ++i) 
+    {
+        float exact_accX = 0.0f;
+        float exact_accY = 0.0f;
+        
+        for (int j = 0; j < bh_particles.size(); ++j) 
+        {
+            if (i == j) continue;
+            float dx = bh_particles[j].posX - bh_particles[i].posX;
+            float dy = bh_particles[j].posY - bh_particles[i].posY;
+            float distSq = dx * dx + dy * dy;
+            
+            if (distSq < 1e-5f) continue;
+            
+            float dist = std::sqrt(distSq);
+            float acc = G * bh_particles[j].mass / (distSq + 1.0f);
+            exact_accX += acc * (dx / dist);
+            exact_accY += acc * (dy / dist);
+        }
+
+        double diffX = bh_particles[i].accX - exact_accX;
+        double diffY = bh_particles[i].accY - exact_accY;
+        
+        double diff_sq = diffX * diffX + diffY * diffY;
+        double bf_sq = exact_accX * exact_accX + exact_accY * exact_accY;
+        
+        sum_diff_sq += diff_sq;
+        sum_bf_sq += bf_sq;
+
+        // Błąd względny dla 95 percentyla
+        double exact_norm = std::sqrt(bf_sq);
+        double diff_norm = std::sqrt(diff_sq);
+        if (exact_norm > 1e-6) {
+            double rel_err = diff_norm / exact_norm;
+            #pragma omp critical
+            {
+                local_relative_errors.push_back(rel_err);
+            }
+        }
+    }
+
+    double rms_error = std::sqrt(sum_diff_sq / sum_bf_sq);
+    
+    std::sort(local_relative_errors.begin(), local_relative_errors.end());
+    double p95_error = 0.0;
+    if (!local_relative_errors.empty()) {
+        size_t p95_index = static_cast<size_t>(0.95 * local_relative_errors.size());
+        p95_error = local_relative_errors[p95_index];
+    }
+
+    std::cout << std::fixed << std::setprecision(4);
+    std::cout << "Globalny blad sily (RMS): " << rms_error * 100.0 << " %\n";
+    std::cout << "Blad 95. percentyla:      " << p95_error * 100.0 << " %\n";
+    std::cout << "--------------------------------------------------\n";
+}
+
+int mainMain()
 {
     omp_set_num_threads(12);
     srand(42);
@@ -216,10 +287,10 @@ int main()
     unsigned long long totalCyclesTree = 0;
     unsigned long long totalCyclesForce = 0;
 
-    std::ifstream inFile("start_500k.txt");
+    std::ifstream inFile(inputFile);
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_10k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku " << inputFile << "!\n";
         return 1;
     }
 
@@ -290,6 +361,10 @@ int main()
             calculateForces(i, particles, treeArena);
         }
 
+        // if (frame == FRAMES - 1) {
+        //     validateForceAccuracy(frame, particles);
+        // }
+
         #pragma omp parallel for
         for (int i = 0; i < particles.size(); ++i)
         {
@@ -318,7 +393,7 @@ int main()
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_10k.txt");
+    // std::ifstream outFile("wzorzec_5000k.txt");
     // if (!outFile) 
     // {
     //     std::cout << "file error.\n";
@@ -347,5 +422,13 @@ int main()
     //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
     //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
     // }
+    return 0;
+}
+
+int main() {
+    
+    for (int i = 0; i < 3; ++i) {
+        mainMain();
+    }
     return 0;
 }

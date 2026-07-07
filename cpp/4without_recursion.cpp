@@ -10,9 +10,9 @@
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
-constexpr float THETA = 0.4f;
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 100000;
+constexpr float THETA = 0.3f;
+constexpr float FRAMES = 10;
+constexpr int NUM_PARTICLES = 5000000;
 
 struct Particle
 {
@@ -46,10 +46,11 @@ void insertParticle(int nodeIdx, int pIdx, std::vector<Node>& arena, std::vector
     if (arena[nodeIdx].particleIndex != -1) 
     {
         int oldIdx = arena[nodeIdx].particleIndex;
-        if (particles[pIdx].posX == particles[oldIdx].posX && 
-            particles[pIdx].posY == particles[oldIdx].posY) 
+        float shift = 0.0001f;
+        while (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY) 
         {
-            particles[pIdx].posX += 0.0001f;
+            particles[pIdx].posX += shift;
+            shift *= 2.0f;
         }
     }
 
@@ -145,7 +146,6 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
         float dx = node.centerX - p.posX;
         float dy = node.centerY - p.posY;
         float distSq = dx * dx + dy * dy;
-        float dist = std::sqrt(distSq);
 
         if (distSq < 1e-5f) 
         {
@@ -153,9 +153,11 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
             continue;
         }
 
-        float s = node.halfSize * 2.0f;
-        if ((s / dist) < THETA || node.children[0] == -1)
+        float side_length = node.halfSize * 2.0f;
+        float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+        if (r_c_sq < THETA * THETA * distSq || node.children[0] == -1)
         {
+            float dist = std::sqrt(distSq);
             float acc = G * node.mass / (distSq + 1.0f);
             p.accX += acc * (dx / dist);
             p.accY += acc * (dy / dist);
@@ -169,102 +171,108 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
     }
 }
 
-struct PhysicsMetrics {
-    double totalMomentumX = 0.0;
-    double totalMomentumY = 0.0;
-    double totalKineticEnergy = 0.0;
-    double centerX = 0.0;
-    double centerY = 0.0;
-};
+// struct PhysicsMetrics {
+//     double totalMomentumX = 0.0;
+//     double totalMomentumY = 0.0;
+//     double totalKineticEnergy = 0.0;
+//     double centerX = 0.0;
+//     double centerY = 0.0;
+// };
 
-PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particles) {
-    PhysicsMetrics m;
-    double totalMass = 0.0;
+// PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particles) {
+//     PhysicsMetrics m;
+//     double totalMass = 0.0;
 
-    for (const auto& p : particles) {
-        double mass = static_cast<double>(p.mass);
-        double vx = static_cast<double>(p.velocityX);
-        double vy = static_cast<double>(p.velocityY);
-        double px = static_cast<double>(p.posX);
-        double py = static_cast<double>(p.posY);
+//     for (const auto& p : particles) {
+//         double mass = static_cast<double>(p.mass);
+//         double vx = static_cast<double>(p.velocityX);
+//         double vy = static_cast<double>(p.velocityY);
+//         double px = static_cast<double>(p.posX);
+//         double py = static_cast<double>(p.posY);
 
-        m.totalMomentumX += mass * vx;
-        m.totalMomentumY += mass * vy;
-        m.totalKineticEnergy += 0.5 * mass * (vx * vx + vy * vy);
+//         m.totalMomentumX += mass * vx;
+//         m.totalMomentumY += mass * vy;
+//         m.totalKineticEnergy += 0.5 * mass * (vx * vx + vy * vy);
 
-        m.centerX += mass * px;
-        m.centerY += mass * py;
-        totalMass += mass;
-    }
+//         m.centerX += mass * px;
+//         m.centerY += mass * py;
+//         totalMass += mass;
+//     }
 
-    m.centerX /= totalMass;
-    m.centerY /= totalMass;
+//     m.centerX /= totalMass;
+//     m.centerY /= totalMass;
 
-    return m;
-}
+//     return m;
+// }
 
-void validateForceAccuracy(int currentFrame, const std::vector<Node>& arena, const std::vector<Particle>& particles)
+void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_particles)
 {
-    std::cout << "\n WALIDACJA DOKLADNOSCI SILY (Klatka " << currentFrame << ") \n";
+    std::cout << "\n--- WALIDACJA DOKLADNOSCI SILY (Klatka " << currentFrame << ") ---\n";
 
-    double totalRelativeError = 0.0;
-    double maxRelativeError = 0.0;
-    int validParticles = 0;
+    double sum_diff_sq = 0.0;
+    double sum_bf_sq = 0.0;
+    std::vector<double> local_relative_errors;
+    local_relative_errors.reserve(bh_particles.size());
 
-    std::vector<Particle> tempParticles = particles;
-    float diff = 0.0f;
-    for (size_t i = 0; i < particles.size(); ++i) 
+    // Obliczamy referencyjne siły O(N^2) na aktualnych pozycjach Barnes-Hut
+    //#pragma omp parallel for reduction(+:sum_diff_sq, sum_bf_sq) schedule(dynamic, 32)
+    for (int i = 0; i < bh_particles.size(); ++i) 
     {
-        // A. Prawdziwa siła (Brute Force O(N^2))
         float exact_accX = 0.0f;
         float exact_accY = 0.0f;
-        for (size_t j = 0; j < particles.size(); ++j) 
+        
+        for (int j = 0; j < bh_particles.size(); ++j) 
         {
             if (i == j) continue;
-            float dx = particles[j].posX - particles[i].posX;
-            float dy = particles[j].posY - particles[i].posY;
+            float dx = bh_particles[j].posX - bh_particles[i].posX;
+            float dy = bh_particles[j].posY - bh_particles[i].posY;
             float distSq = dx * dx + dy * dy;
             
             if (distSq < 1e-5f) continue;
             
             float dist = std::sqrt(distSq);
-            float acc = G * particles[j].mass / (distSq + 1.0f);
+            float acc = G * bh_particles[j].mass / (distSq + 1.0f);
             exact_accX += acc * (dx / dist);
             exact_accY += acc * (dy / dist);
         }
 
-        // B. Przybliżona siła z Drzewa (Barnes-Hut O(N log N))
-        tempParticles[i].accX = 0.0f; 
-        tempParticles[i].accY = 0.0f;
-        calculateForces(i, tempParticles, arena);
-
-        float bh_accX = tempParticles[i].accX;
-        float bh_accY = tempParticles[i].accY;
-
-        // C. Matematyka błędu względnego
-        float diffX = bh_accX - exact_accX;
-        float diffY = bh_accY - exact_accY;
+        double diffX = bh_particles[i].accX - exact_accX;
+        double diffY = bh_particles[i].accY - exact_accY;
         
-        float exact_norm = std::sqrt(exact_accX * exact_accX + exact_accY * exact_accY);
-        float diff_norm = std::sqrt(diffX * diffX + diffY * diffY);
+        double diff_sq = diffX * diffX + diffY * diffY;
+        double bf_sq = exact_accX * exact_accX + exact_accY * exact_accY;
+        
+        sum_diff_sq += diff_sq;
+        sum_bf_sq += bf_sq;
 
-        if (exact_norm > 1e-6f && diffX != 0.0f && diffY != 0.0f) {
-            float relError = diff_norm / exact_norm;
-            totalRelativeError += relError;
-            if (relError > maxRelativeError) {
-                maxRelativeError = relError;
-                diff = diff_norm;
+        // Błąd względny dla 95 percentyla
+        double exact_norm = std::sqrt(bf_sq);
+        double diff_norm = std::sqrt(diff_sq);
+        if (exact_norm > 1e-6) {
+            double rel_err = diff_norm / exact_norm;
+            #pragma omp critical
+            {
+                local_relative_errors.push_back(rel_err);
             }
-            validParticles++;
         }
     }
 
-    std::cout << "Sredni blad wzgledny sily: " << (totalRelativeError / validParticles) * 100.0 << " %\n";
-    std::cout << "Maksymalny blad wzgledny:  " << maxRelativeError * 100.0 << " %\n";
-    std::cout << "Maks blad liczbowo: d=" << diff << "\n";
+    double rms_error = std::sqrt(sum_diff_sq / sum_bf_sq);
+    
+    std::sort(local_relative_errors.begin(), local_relative_errors.end());
+    double p95_error = 0.0;
+    if (!local_relative_errors.empty()) {
+        size_t p95_index = static_cast<size_t>(0.95 * local_relative_errors.size());
+        p95_error = local_relative_errors[p95_index];
+    }
+
+    std::cout << std::fixed << std::setprecision(4);
+    std::cout << "Globalny blad sily (RMS): " << rms_error * 100.0 << " %\n";
+    std::cout << "Blad 95. percentyla:      " << p95_error * 100.0 << " %\n";
+    std::cout << "--------------------------------------------------\n";
 }
 
-int main()
+int mainMain()
 {
     srand(42);
     std::vector<Particle> particles;
@@ -276,10 +284,10 @@ int main()
     unsigned long long totalCyclesTree = 0;
     unsigned long long totalCyclesForce = 0;
 
-   std::ifstream inFile("start_100k.txt");
+   std::ifstream inFile("start_5000k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_5000k.txt!\n";
         return 1;
     }
 
@@ -326,26 +334,23 @@ int main()
         {
             insertParticle(0, i, treeArena, particles);
         }
-        if (frame == 0) {
-            // Rozmiar cząstek:
-            size_t particlesMem = particles.capacity() * sizeof(Particle);
-            // Maksymalny rozmiar zarezerwowanej areny drzewa:
-            size_t treeMem = treeArena.capacity() * sizeof(Node);
+        // if (frame == 0) {
+        //     // Rozmiar cząstek:
+        //     size_t particlesMem = particles.capacity() * sizeof(Particle);
+        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     size_t treeMem = treeArena.capacity() * sizeof(Node);
 
-            std::cout << std::fixed << std::setprecision(6);
-            double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-            std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-            std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
-            std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
-            std::cout << "Size of Node (V4/V5): " << sizeof(Node) << " bytes\n";
-        }
+        //     std::cout << std::fixed << std::setprecision(6);
+        //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
+        //     std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
+        //     std::cout << "Size of Node (V4/V5): " << sizeof(Node) << " bytes\n";
+        // }
 
         computeMassDistribution(0, treeArena, particles);
         threadTree(0, -1, treeArena);
 
-        // if (frame == 0 || frame == 150 || frame == 299) {
-        //     validateForceAccuracy(frame, treeArena, particles);
-        // }
         totalTreeBuildTime += timer.stopTime();
         totalCyclesTree += timer.stopCycles();
         // if(frame == 0) {
@@ -359,6 +364,12 @@ int main()
             calculateForces(i, particles, treeArena);
         }
 
+        // if (frame == 0 or frame == FRAMES - 1 or frame == 150) { 
+        //     validateForceAccuracy(frame, particles);
+        // }
+        // ---------------------------------------------------------
+
+        // AKTUALIZACJA POZYCJI I ZEROWANIE SIŁ
         for (auto& particle : particles)
         {
             particle.velocityX += particle.accX * TIME_STEP;
@@ -371,13 +382,13 @@ int main()
         }
         totalForceTime += timer.stopTime();
         totalCyclesForce += timer.stopCycles();
-        if (frame == 0 or frame == FRAMES - 1) {
-            auto metrics = calculatePhysicsDiagnostics(particles);
-            std::cout << "Frame " << frame << ":\n";
-            std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
-            std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
-            std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
-        }
+        // if (frame == 0 or frame == FRAMES - 1) {
+        //     auto metrics = calculatePhysicsDiagnostics(particles);
+        //     std::cout << "Frame " << frame << ":\n";
+        //     std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
+        //     std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
+        //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
+        // }
     }
 
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
@@ -385,7 +396,7 @@ int main()
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_50k.txt");
+    // std::ifstream outFile("wzorzec_5000k.txt");
     // if (!outFile) 
     // {
     //     std::cout << "file error.\n";
@@ -414,5 +425,13 @@ int main()
     //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
     //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
     // }
+    return 0;
+}
+
+int main()
+{
+    for (int i = 0; i < 3; ++i) {
+        mainMain();
+    }
     return 0;
 }

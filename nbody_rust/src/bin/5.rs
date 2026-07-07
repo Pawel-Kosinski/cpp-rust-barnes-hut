@@ -8,11 +8,12 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use rayon::{ThreadPoolBuilder, prelude::*};
 
-const NUM_PARTICLES: usize = 500000;
-const FRAMES: usize = 300;
+const NUM_PARTICLES: usize = 1000000;
+const FRAMES: usize = 50;
 const TIME_STEP: f32 = 0.016; 
-const THETA: f32 = 0.4;
+const THETA: f32 = 0.3;
 const G : f32 = 1.0;
+const FILEPATH: &str = "start_1000k.txt";
 
 #[derive(Clone)]
 struct Particle {
@@ -188,11 +189,10 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
             continue;
         }
 
-        let dist = dist_sq.sqrt();
-        let s = node.half_size * 2.0;
-
-        if (s / dist) < THETA || node.children[0] == usize::MAX
+        let r_sq = 2.0 * node.half_size * node.half_size;
+        if r_sq < THETA * THETA * dist_sq || node.children[0] == usize::MAX
         {
+            let dist = dist_sq.sqrt();
             let acc = G * node.mass / (dist_sq + 1.0);
             acc_x += acc * (dx / dist);
             acc_y += acc * (dy / dist);
@@ -248,18 +248,85 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
 //     m
 // }
 
-fn main()
+fn validateForceAccuracyParallel(current_frame: usize, bh_particles: &[Particle], bh_forces: &[(f32, f32)]) {
+    println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
+
+    let results: Vec<(f64, f64, Option<f64>)> = bh_particles.par_iter().enumerate().map(|(i, _)| {
+        let mut exact_acc_x: f32 = 0.0;
+        let mut exact_acc_y: f32 = 0.0;
+
+        for j in 0..bh_particles.len() {
+            if i == j { continue; }
+            let dx = bh_particles[j].pos_x - bh_particles[i].pos_x;
+            let dy = bh_particles[j].pos_y - bh_particles[i].pos_y;
+            let dist_sq = dx * dx + dy * dy;
+
+            if dist_sq < 1e-5 { continue; }
+
+            let dist = dist_sq.sqrt();
+            let acc = G * bh_particles[j].mass / (dist_sq + 1.0);
+            exact_acc_x += acc * (dx / dist);
+            exact_acc_y += acc * (dy / dist);
+        }
+
+        let bh_acc_x = bh_forces[i].0 as f64;
+        let bh_acc_y = bh_forces[i].1 as f64;
+
+        let diff_x = bh_acc_x - exact_acc_x as f64;
+        let diff_y = bh_acc_y - exact_acc_y as f64;
+
+        let diff_sq = diff_x * diff_x + diff_y * diff_y;
+        let bf_sq = (exact_acc_x * exact_acc_x + exact_acc_y * exact_acc_y) as f64;
+
+        let exact_norm = bf_sq.sqrt();
+        let diff_norm = diff_sq.sqrt();
+        
+        let rel_err = if exact_norm > 1e-6 {
+            Some(diff_norm / exact_norm)
+        } else {
+            None
+        };
+
+        (diff_sq, bf_sq, rel_err)
+    }).collect();
+
+    let mut sum_diff_sq: f64 = 0.0;
+    let mut sum_bf_sq: f64 = 0.0;
+    let mut local_relative_errors = Vec::with_capacity(bh_particles.len());
+
+    for (diff_sq, bf_sq, rel_err) in results {
+        sum_diff_sq += diff_sq;
+        sum_bf_sq += bf_sq;
+        if let Some(err) = rel_err {
+            local_relative_errors.push(err);
+        }
+    }
+
+    let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
+    
+    local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut p95_error = 0.0;
+    if !local_relative_errors.is_empty() {
+        let p95_index = (0.95 * local_relative_errors.len() as f64) as usize;
+        p95_error = local_relative_errors[p95_index];
+    }
+
+    println!("Globalny blad sily (RMS): {:.4} %", rms_error * 100.0);
+    println!("Blad 95. percentyla:      {:.4} %", p95_error * 100.0);
+    println!("--------------------------------------------------");
+}
+
+fn mainMain()
 {
     let mut particles = Vec::new();
     //let mut arena: Vec<Node> = Vec::with_capacity(3 * NUM_PARTICLES);
     let mut arena: Vec<Node> = Vec::new();
-    ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
     
-    let path = Path::new("start_500k.txt");
+    let path = Path::new(FILEPATH);
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt.");
+            eprintln!("Blad: Nie mozna otworzyc pliku {}.", FILEPATH);
             std::process::exit(1);
         }
     };
@@ -354,6 +421,10 @@ fn main()
              calculateForces(i, 0, &arena, &particles)
         }).collect();
 
+        // if j == FRAMES - 1 || j == 0 || j == 150{
+        //     validateForceAccuracyParallel(j, &particles, &forces);
+        // }
+
         //Zaaplikuj siły równolegle do oryginalnych cząstek
         particles.par_iter_mut().zip(forces.par_iter()).for_each(|(p, (acc_x, acc_y))| {
             p.velocity_x += acc_x * TIME_STEP;
@@ -382,7 +453,7 @@ fn main()
     println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
     println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
 
-    // let ref_path = Path::new("wzorzec_50k.txt");
+    // let ref_path = Path::new("wzorzec_1000k.txt");
     // match File::open(&ref_path) {
     //     Ok(ref_file) => {
     //         let ref_reader = io::BufReader::new(ref_file);
@@ -417,4 +488,11 @@ fn main()
     //     }
     //     Err(_) => { eprintln!("file error."); }
     // }
+}
+
+fn main() {
+    ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
+    for i in 0..3 {
+        mainMain();
+    }
 }

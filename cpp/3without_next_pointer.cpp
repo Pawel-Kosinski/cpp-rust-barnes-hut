@@ -9,9 +9,9 @@
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
-constexpr float THETA = 0.4f;
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 500000;
+constexpr float THETA = 0.3f;
+constexpr float FRAMES = 10;
+constexpr int NUM_PARTICLES = 5000000;
 
 struct Particle
 {
@@ -45,10 +45,11 @@ void insertParticle(int nodeIdx, int pIdx, std::vector<Node>& arena, std::vector
     if (arena[nodeIdx].particleIndex != -1) 
     {
         int oldIdx = arena[nodeIdx].particleIndex;
-        if (particles[pIdx].posX == particles[oldIdx].posX && 
-            particles[pIdx].posY == particles[oldIdx].posY) 
+        float shift = 0.0001f;
+        while (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY) 
         {
-            particles[pIdx].posX += 0.0001f;
+            particles[pIdx].posX += shift;
+            shift *= 2.0f;
         }
     }
 
@@ -167,11 +168,12 @@ void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& part
 
     if (distSq < 1e-5f) return;
 
-    float dist = std::sqrt(distSq);
-    float s = node.halfSize * 2.0f;
-
-    if ((s / dist) < THETA || node.children[0] == -1)
+    float side_length = node.halfSize * 2.0f;
+    // if ((s / dist) < THETA 
+    float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+    if (r_c_sq < THETA * THETA * distSq || node.children[0] == -1)
     {
+        float dist = std::sqrt(distSq);
         float acc = G * node.mass / (distSq + 1.0f);
         p.accX += acc * (dx / dist);
         p.accY += acc * (dy / dist);
@@ -189,7 +191,7 @@ void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& part
     }
 }
 
-int main()
+int mainMain()
 {
     srand(42);
     std::vector<Particle> particles;
@@ -200,10 +202,10 @@ int main()
     unsigned long long totalCyclesTree = 0;
     unsigned long long totalCyclesForce = 0;
 
-    std::ifstream inFile("start_100k.txt");
+    std::ifstream inFile("start_5000k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_5000k.txt!\n";
         return 1;
     }
 
@@ -251,19 +253,19 @@ int main()
             insertParticle(0, i, treeArena, particles);
         }
 
-        if (frame == 0) {
-            // Rozmiar cząstek:
-            size_t particlesMem = particles.capacity() * sizeof(Particle);
-            // Maksymalny rozmiar zarezerwowanej areny drzewa:
-            size_t treeMem = treeArena.capacity() * sizeof(Node);
+        // if (frame == 0) {
+        //     // Rozmiar cząstek:
+        //     size_t particlesMem = particles.capacity() * sizeof(Particle);
+        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     size_t treeMem = treeArena.capacity() * sizeof(Node);
 
-            std::cout << std::fixed << std::setprecision(6);
-            double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-            std::cout << "zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-            std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
-            std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
-            std::cout << "Size of Node (V3): " << sizeof(Node) << " bytes\n";
-        }
+        //     std::cout << std::fixed << std::setprecision(6);
+        //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
+        //     std::cout << "zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
+        //     std::cout << "Size of Node (V3): " << sizeof(Node) << " bytes\n";
+        // }
 
         computeMassDistribution(0, treeArena, particles);
         totalTreeBuildTime += timer.stopTime();
@@ -287,20 +289,20 @@ int main()
         }
         totalForceTime += timer.stopTime();
         totalCyclesForce += timer.stopCycles();
-        if (frame == 0 or frame == FRAMES - 1) {
-            auto metrics = calculatePhysicsDiagnostics(particles);
-            std::cout << "Frame " << frame << ":\n";
-            std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
-            std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
-            std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
-        }
+        // if (frame == 0 or frame == FRAMES - 1) {
+        //     auto metrics = calculatePhysicsDiagnostics(particles);
+        //     std::cout << "Frame " << frame << ":\n";
+        //     std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
+        //     std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
+        //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
+        // }
     }
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_50k.txt");
+    // std::ifstream outFile("wzorzec_5000k.txt");
     // if (!outFile) 
     // {
     //     std::cout << "file error.\n";
@@ -329,5 +331,13 @@ int main()
     //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
     //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
     // }
+    return 0;
+}
+
+int main()
+{
+    for (int i = 0; i < 3; ++i) {
+        mainMain();
+    }
     return 0;
 }

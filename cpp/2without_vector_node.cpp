@@ -8,9 +8,9 @@
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
-constexpr float THETA = 0.4f;
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 100000;
+constexpr float THETA = 0.3f;
+constexpr float FRAMES = 50;
+constexpr int NUM_PARTICLES = 2000000;
 
 struct NodePtr 
 {
@@ -45,8 +45,12 @@ void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles
     if (node->particleIndex != -1) 
     {
         int oldIdx = node->particleIndex;
-        if (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY) 
-            particles[pIdx].posX += 0.0001f;
+        float shift = 0.0001f;
+        while (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY) 
+        {
+            particles[pIdx].posX += shift;
+            shift *= 2.0f;
+        }
     }
 
     if (node->children[0] != nullptr) 
@@ -122,12 +126,13 @@ void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particle
     float distSq = dx * dx + dy * dy;
 
     if (distSq < 1e-5f) return;
-
-    float dist = std::sqrt(distSq);
-    float s = node->halfSize * 2.0f;
-
-    if ((s / dist) < THETA || node->children[0] == nullptr) 
+    
+    float side_length = node->halfSize * 2.0f;
+    // if ((s / dist) < THETA 
+    float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+    if (r_c_sq < THETA * THETA * distSq || node->children[0] == nullptr) 
     {
+        float dist = std::sqrt(distSq);
         float acc = G * node->mass / (distSq + 1.0f);
         p.accX += acc * (dx / dist);
         p.accY += acc * (dy / dist);
@@ -198,7 +203,7 @@ PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particle
     return m;
 }
 
-int main()
+int mainMain()
 {
     srand(42);
     std::vector<Particle> particles;
@@ -209,10 +214,10 @@ int main()
     unsigned long long totalCyclesForce = 0;
     particles.reserve(NUM_PARTICLES);
 
-    std::ifstream inFile("start_100k.txt");
+    std::ifstream inFile("start_2000k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_50k.txt!\n";
+        std::cerr << "Blad: Nie mozna otworzyc pliku start_2000k.txt!\n";
         return 1;
     }
 
@@ -255,20 +260,20 @@ int main()
         for (int i = 0; i < particles.size(); ++i) {
             insertParticlePtr(rootPtr, i, particles);
         }
-        if (frame == 0) {
-            //Rozmiar cząstek:
-            size_t particlesMem = particles.capacity() * sizeof(Particle);
-            // Maksymalny rozmiar zarezerwowanej areny drzewa:
-            int nodeCount = countNodesPtr(rootPtr);
-            size_t treeMem = nodeCount * sizeof(NodePtr);
+        // if (frame == 0) {
+        //     //Rozmiar cząstek:
+        //     size_t particlesMem = particles.capacity() * sizeof(Particle);
+        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     int nodeCount = countNodesPtr(rootPtr);
+        //     size_t treeMem = nodeCount * sizeof(NodePtr);
 
-            std::cout << std::fixed << std::setprecision(6);
-            double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-            std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-            std::cout << "Stworzono " << nodeCount << " wezlow drzewa.\n";
-            std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
-            std::cout << "Size of NodePtr (V2): " << sizeof(NodePtr) << " bytes\n";
-        }
+        //     std::cout << std::fixed << std::setprecision(6);
+        //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
+        //     std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Stworzono " << nodeCount << " wezlow drzewa.\n";
+        //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
+        //     std::cout << "Size of NodePtr (V2): " << sizeof(NodePtr) << " bytes\n";
+        // }
 
         computeMassDistributionPtr(rootPtr, particles);
         totalTreeBuildTime += timer.stopTime();
@@ -293,20 +298,20 @@ int main()
         }
         totalForceTime += timer.stopTime();
         totalCyclesForce += timer.stopCycles();
-        if (frame == 0 or frame == FRAMES - 1) {
-            auto metrics = calculatePhysicsDiagnostics(particles);
-            std::cout << "Frame " << frame << ":\n";
-            std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
-            std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
-            std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
-        }
+        // if (frame == 0 or frame == FRAMES - 1) {
+        //     auto metrics = calculatePhysicsDiagnostics(particles);
+        //     std::cout << "Frame " << frame << ":\n";
+        //     std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
+        //     std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
+        //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
+        // }
     }
     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
     std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
     std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_50k.txt");
+    // std::ifstream outFile("wzorzec_2000k.txt");
     // if (!outFile) 
     // {
     //     std::cout << "file error.\n";
@@ -336,4 +341,11 @@ int main()
     //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
     // }
     return 0;
+}
+
+int main()
+{
+    for (int i = 0; i < 3; ++i) {
+        mainMain();
+    }
 }

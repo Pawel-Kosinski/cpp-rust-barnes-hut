@@ -8,10 +8,10 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const NUM_PARTICLES: usize = 100000;
-const FRAMES: usize = 300;
+const NUM_PARTICLES: usize = 1000000;
+const FRAMES: usize = 50;
 const TIME_STEP: f32 = 0.016; 
-const THETA: f32 = 0.4;
+const THETA: f32 = 0.3;
 const G : f32 = 1.0;
 
 #[derive(Clone)]
@@ -176,17 +176,17 @@ fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>
         let dx = node.center_of_mass_x - particles[pIdx].pos_x;
         let dy = node.center_of_mass_y - particles[pIdx].pos_y;
         let dist_sq = dx * dx + dy * dy;
-        let dist = dist_sq.sqrt();
+        //let dist = dist_sq.sqrt();
 
         if dist_sq < 1e-5 {
             currNodeIdx = node.next;
             continue;
         }
 
-        let s = node.half_size * 2.0;
-
-        if (s / dist) < THETA || node.children[0] == usize::MAX
+        let r_sq = 2.0 * node.half_size * node.half_size;
+        if r_sq < THETA * THETA * dist_sq || node.children[0] == usize::MAX
         {
+            let dist = dist_sq.sqrt();
             let acc = G * node.mass / (dist_sq + 1.0);
             particles[pIdx].acc_x += acc * (dx / dist);
             particles[pIdx].acc_y += acc * (dy / dist);
@@ -199,125 +199,72 @@ fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>
     }
 }
 
-fn validateForceAccuracy(current_frame: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>) 
-{
-    println!("\n WALIDACJA DOKLADNOSCI SILY (Klatka {})", current_frame);
+fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
+    println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
 
-    let mut total_relative_error: f64 = 0.0;
-    let mut max_relative_error: f64 = 0.0;
-    let mut valid_particles: usize = 0;
+    let mut sum_diff_sq: f64 = 0.0;
+    let mut sum_bf_sq: f64 = 0.0;
+    let mut local_relative_errors = Vec::with_capacity(bh_particles.len());
 
-    // Kopia całego wektora cząstek (odpowiednik: std::vector<Particle> tempParticles = particles;)
-    let mut temp_particles = particles.clone();
-
-    for i in 0..particles.len() 
-    {
-        // A. Prawdziwa siła (Brute Force O(N^2))
+    for i in 0..bh_particles.len() {
         let mut exact_acc_x: f32 = 0.0;
         let mut exact_acc_y: f32 = 0.0;
 
-        for j in 0..particles.len() 
-        {
+        for j in 0..bh_particles.len() {
             if i == j { continue; }
-            
-            let dx = particles[j].pos_x - particles[i].pos_x;
-            let dy = particles[j].pos_y - particles[i].pos_y;
+            let dx = bh_particles[j].pos_x - bh_particles[i].pos_x;
+            let dy = bh_particles[j].pos_y - bh_particles[i].pos_y;
             let dist_sq = dx * dx + dy * dy;
 
             if dist_sq < 1e-5 { continue; }
 
             let dist = dist_sq.sqrt();
-            let acc = G * particles[j].mass / (dist_sq + 1.0);
+            let acc = G * bh_particles[j].mass / (dist_sq + 1.0);
             exact_acc_x += acc * (dx / dist);
             exact_acc_y += acc * (dy / dist);
         }
 
-        // B. Przybliżona siła z Drzewa (Barnes-Hut O(N log N))
-        temp_particles[i].acc_x = 0.0;
-        temp_particles[i].acc_y = 0.0;
-        
-        // Obliczenia na kopii (zwróć uwagę na kolejność argumentów zgodnie z Twoją funkcją)
-        calculateForces(i, arena, &mut temp_particles);
+        let diff_x = (bh_particles[i].acc_x - exact_acc_x) as f64;
+        let diff_y = (bh_particles[i].acc_y - exact_acc_y) as f64;
 
-        let bh_acc_x = temp_particles[i].acc_x;
-        let bh_acc_y = temp_particles[i].acc_y;
+        let diff_sq = diff_x * diff_x + diff_y * diff_y;
+        let bf_sq = (exact_acc_x * exact_acc_x + exact_acc_y * exact_acc_y) as f64;
 
-        // C. Matematyka błędu względnego
-        let diff_x = bh_acc_x - exact_acc_x;
-        let diff_y = bh_acc_y - exact_acc_y;
+        sum_diff_sq += diff_sq;
+        sum_bf_sq += bf_sq;
 
-        let exact_norm = (exact_acc_x * exact_acc_x + exact_acc_y * exact_acc_y).sqrt();
-        let diff_norm = (diff_x * diff_x + diff_y * diff_y).sqrt();
+        let exact_norm = bf_sq.sqrt();
+        let diff_norm = diff_sq.sqrt();
 
-        if exact_norm > 1e-6 && diff_x != 0.0 && diff_y != 0.0 
-        {
-            let rel_error = (diff_norm / exact_norm) as f64;
-            total_relative_error += rel_error;
-            
-            if rel_error > max_relative_error {
-                max_relative_error = rel_error;
-            }
-            valid_particles += 1;
+        if exact_norm > 1e-6 {
+            local_relative_errors.push(diff_norm / exact_norm);
         }
     }
 
-    if valid_particles > 0 {
-        println!("Sredni blad wzgledny sily: {:.6} %", (total_relative_error / valid_particles as f64) * 100.0);
-        println!("Maksymalny blad wzgledny:  {:.6} %", max_relative_error * 100.0);
+    let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
+    
+    local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut p95_error = 0.0;
+    if !local_relative_errors.is_empty() {
+        let p95_index = (0.95 * local_relative_errors.len() as f64) as usize;
+        p95_error = local_relative_errors[p95_index];
     }
+
+    println!("Globalny blad sily (RMS): {:.4} %", rms_error * 100.0);
+    println!("Blad 95. percentyla:      {:.4} %", p95_error * 100.0);
+    println!("--------------------------------------------------");
 }
 
-// pub struct PhysicsMetrics {
-//     pub total_momentum_x: f64,
-//     pub total_momentum_y: f64,
-//     pub total_kinetic_energy: f64,
-//     pub center_x: f64,
-//     pub center_y: f64,
-// }
-
-// pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
-//     let mut m = PhysicsMetrics {
-//         total_momentum_x: 0.0,
-//         total_momentum_y: 0.0,
-//         total_kinetic_energy: 0.0,
-//         center_x: 0.0,
-//         center_y: 0.0,
-//     };
-//     let mut total_mass = 0.0;
-
-//     for p in particles {
-//         // Rzutowanie na f64 chroni przed utratą precyzji
-//         let mass = p.mass as f64;
-//         let vx = p.velocity_x as f64;
-//         let vy = p.velocity_y as f64;
-//         let px = p.pos_x as f64;
-//         let py = p.pos_y as f64;
-
-//         m.total_momentum_x += mass * vx;
-//         m.total_momentum_y += mass * vy;
-//         m.total_kinetic_energy += 0.5 * mass * (vx * vx + vy * vy);
-
-//         m.center_x += mass * px;
-//         m.center_y += mass * py;
-//         total_mass += mass;
-//     }
-
-//     m.center_x /= total_mass;
-//     m.center_y /= total_mass;
-
-//     m
-// }
-
-fn main()
+fn mainMain()
 {
     let mut particles = Vec::new();
     let mut arena = Vec::new();
     
-    let path = Path::new("start_100k.txt");
+    let path = Path::new("start_1000k.txt");
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_50k.txt. Czy na pewno wygenerowales plik?");
+            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt. Czy na pewno wygenerowales plik?");
             std::process::exit(1);
         }
     };
@@ -384,15 +331,15 @@ fn main()
             insertParticle(0, i, &mut arena, &mut particles);
         }
 
-        if j == 0 {
-            let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
-            let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
-            let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
-            println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
-            println!("Stworzono {} wezlow drzewa", arena.len());
-            println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
-            println!("Size of Node (V4/V5): {:.6} bytes", std::mem::size_of::<Node>());
-        }
+        // if j == 0 {
+        //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+        //     let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
+        //     let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
+        //     println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+        //     println!("Stworzono {} wezlow drzewa", arena.len());
+        //     println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
+        //     println!("Size of Node (V4/V5): {:.6} bytes", std::mem::size_of::<Node>());
+        // }
 
         computeMassDistribution(0, &mut arena, &particles);
         threadTree(0, usize::MAX, &mut arena);
@@ -406,6 +353,11 @@ fn main()
             calculateForces(i, &mut arena, &mut particles);
         }
 
+
+        // if j == FRAMES - 1 || j == 0 || j == 150{
+        //     validateForceAccuracy(j, &particles);
+        // }
+
         for p in &mut particles
         {
             p.velocity_x += p.acc_x * TIME_STEP;
@@ -417,6 +369,7 @@ fn main()
         }
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
         total_cycles_force += unsafe { _rdtsc() } - start_cycles;
+
 
         // if j == 0 || j == FRAMES - 1 {
         //     let metrics = calculate_physics_diagnostics(&particles);
@@ -433,7 +386,7 @@ fn main()
     println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
     println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
 
-    // let ref_path = Path::new("wzorzec_50k.txt");
+    // let ref_path = Path::new("wzorzec_1000k.txt");
     // match File::open(&ref_path) {
     //     Ok(ref_file) => {
     //         let ref_reader = io::BufReader::new(ref_file);
@@ -486,3 +439,8 @@ fn main()
     // }
 }
 
+fn main() {
+    for i in 0..3 {
+        mainMain();
+    }
+}

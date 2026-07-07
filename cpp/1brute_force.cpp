@@ -8,7 +8,7 @@
 constexpr float G = 1; // Gravitational constant
 constexpr float TIME_STEP = 0.016f; // Time step for the simulation
 constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 100000;
+constexpr int NUM_PARTICLES = 50000;
 
 struct Particle
 {
@@ -64,7 +64,7 @@ int main()
     unsigned long long totalCycles = 0;
     //particles.reserve(NUM_PARTICLES);
 
-    std::ifstream inFile("start_100k.txt");
+    std::ifstream inFile("start_50k.txt");
     if (!inFile)
     {
         std::cerr << "Blad: Nie mozna otworzyc pliku start_100k.txt!\n";
@@ -145,7 +145,7 @@ int main()
     std::cout << "Calkowity czas symulacji: " << (time) << " ms\n";
     std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCycles / FRAMES) << " cykli / klatke\n";
 
-    std::ofstream outFile("wzorzec_100k.txt");
+    std::ofstream outFile("wzorzec_50k.txt");
     outFile << std::fixed << std::setprecision(6);
     for (const auto& p : particles)
     {
