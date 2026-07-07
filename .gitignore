@@ -7,7 +7,7 @@
 !*.hpp
 !*.rs
 !*.md
-
+!*.xlsx
 # Track Cargo files
 !Cargo.toml
 !Cargo.lock
