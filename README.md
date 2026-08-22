@@ -116,6 +116,10 @@ See:
 
     docs/reproducing_results.md
 
+The benchmark protocol is summarized in:
+
+    docs/benchmark_protocol.md
+
 The large-scale benchmark data were collected on the workstation described in the associated manuscript. The repository provides source code and result data to support reproducibility and further comparative experiments.
 
 ## Software metadata
