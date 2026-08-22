@@ -18,11 +18,11 @@ From the repository root, run:
 Alternatively, the C++ files can be compiled manually with Clang:
 
     clang++ -O3 -std=c++17 cpp/generator.cpp -o bh_generator
-    clang++ -O3 -std=c++17 cpp/1brute_force.cpp -o bh_cpp_v1
-    clang++ -O3 -std=c++17 cpp/2without_vector_node.cpp -o bh_cpp_v2
-    clang++ -O3 -std=c++17 cpp/3without_next_pointer.cpp -o bh_cpp_v3
-    clang++ -O3 -std=c++17 cpp/4without_recursion.cpp -o bh_cpp_v4
-    clang++ -O3 -std=c++17 -fopenmp cpp/5multi_thread.cpp -o bh_cpp_v5
+    clang++ -O3 -std=c++17 cpp/bh_v1_direct.cpp -o bh_cpp_v1
+    clang++ -O3 -std=c++17 cpp/bh_v2_pointer_tree.cpp -o bh_cpp_v2
+    clang++ -O3 -std=c++17 cpp/bh_v3_vector_tree.cpp -o bh_cpp_v3
+    clang++ -O3 -std=c++17 cpp/bh_v4_threaded_tree.cpp -o bh_cpp_v4
+    clang++ -O3 -std=c++17 -fopenmp cpp/bh_v5_parallel_force.cpp -o bh_cpp_v5
 
 ## Rust build
 

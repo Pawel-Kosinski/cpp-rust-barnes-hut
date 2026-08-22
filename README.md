@@ -47,6 +47,20 @@ The benchmark data used to generate the manuscript figures and tables are provid
 
     results/Results_data.xlsx
 
+## C++ source files
+
+The C++ variants are located in:
+
+    cpp/
+
+The current C++ implementation files are:
+
+    bh_v1_direct.cpp
+    bh_v2_pointer_tree.cpp
+    bh_v3_vector_tree.cpp
+    bh_v4_threaded_tree.cpp
+    bh_v5_parallel_force.cpp
+
 ## Building the C++ implementations
 
 The recommended C++ build uses CMake:
