@@ -104,6 +104,18 @@ See:
 
 The large-scale benchmark data were collected on the workstation described in the associated manuscript. The repository provides source code and result data to support reproducibility and further comparative experiments.
 
+## Software metadata
+
+Additional software metadata are provided in:
+
+    docs/software_metadata.md
+
+## Authors
+
+The author list is provided in:
+
+    AUTHORS.md
+
 ## License
 
 This project is distributed under the MIT License. See:
