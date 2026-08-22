@@ -201,7 +201,7 @@ fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     let mut total_mass = 0.0;
 
     for p in particles {
-        // Rzutowanie na f64 chroni przed utratą precyzji
+        // Casting to f64 reduces precision loss
         let mass = p.mass as f64;
         let vx = p.velocity_x as f64;
         let vy = p.velocity_y as f64;
@@ -225,7 +225,7 @@ fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
 
 #[allow(dead_code)]
 fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
-    println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
+    println!("\n--- FORCE ACCURACY VALIDATION (Frame {}) ---", current_frame);
 
     let mut sum_diff_sq: f64 = 0.0;
     let mut sum_bf_sq: f64 = 0.0;
@@ -275,8 +275,8 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
         p95_error = local_relative_errors[p95_index];
     }
 
-    println!("Globalny blad sily (RMS): {:.4} %", rms_error * 100.0);
-    println!("Blad 95. percentyla:      {:.4} %", p95_error * 100.0);
+    println!("Global force error (RMS): {:.4} %", rms_error * 100.0);
+    println!("95th percentile error:      {:.4} %", p95_error * 100.0);
     println!("--------------------------------------------------");
 }
 
@@ -291,7 +291,7 @@ fn mainMain()
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_50k.txt. Czy na pewno wygenerowales plik?");
+            eprintln!("Error: Could not open file start_50k.txt. Did you generate the file?");
             std::process::exit(1);
         }
     };
@@ -299,9 +299,9 @@ fn mainMain()
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("Blad odczytu linii z pliku");
+        let line = line.expect("Error while reading a line from the file");
 
-        // Rozdzielamy linię po spacjach
+        // Split the line by spaces
         let parts: Vec<&str> = line.split_whitespace().collect();
 
         if parts.len() == 5 {
@@ -361,7 +361,7 @@ fn mainMain()
         //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
         //     let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
         //     let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
-        //     println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+        //     println!("Algorithm memory usage: {} MB", totalAppMemMB);
         //     println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
         //     println!("Size of Node (V3): {:.6} bytes", std::mem::size_of::<Node>());
         // }
@@ -404,13 +404,13 @@ fn mainMain()
         // }
 }
 
-    println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
-    println!("Cykle liczenia sil: {} cykli / klatke", total_cycles_force / (FRAMES as u64));
-    println!("Calkowity czas symulacji: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
-    println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
-    println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (FRAMES as f64));
+    println!("Force calculation cycles: {} cycles / frame", total_cycles_force / (FRAMES as u64));
+    println!("Total simulation time: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
+    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (FRAMES as f64));
+    println!("Tree construction cycles: {} cycles / frame", total_cycles_tree / (FRAMES as u64));
 
-    // let ref_path = Path::new("wzorzec_1000k.txt");
+    // let ref_path = Path::new("reference_1000k.txt");
     // match File::open(&ref_path) {
     //     Ok(ref_file) => {
     //         let ref_reader = io::BufReader::new(ref_file);
@@ -453,8 +453,8 @@ fn mainMain()
 
     //         if particle_count > 0 {
     //             let mean_absolute_error = total_error / particle_count as f32;
-    //             println!("Sredni blad pozycji (MAE): {:.6} jednostek", mean_absolute_error);
-    //             println!("Maksymalny blad pozycji: {:.6} jednostek", max_error);
+    //             println!("Mean absolute position error (MAE): {:.6} units", mean_absolute_error);
+    //             println!("Maximum position error: {:.6} units", max_error);
     //         }
     //     }
     //     Err(_) => {

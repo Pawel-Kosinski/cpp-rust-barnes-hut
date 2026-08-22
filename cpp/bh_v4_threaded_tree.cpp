@@ -207,14 +207,14 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
 
 void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_particles)
 {
-    std::cout << "\n--- WALIDACJA DOKLADNOSCI SILY (Klatka " << currentFrame << ") ---\n";
+    std::cout << "\n--- FORCE ACCURACY VALIDATION (Frame " << currentFrame << ") ---\n";
 
     double sum_diff_sq = 0.0;
     double sum_bf_sq = 0.0;
     std::vector<double> local_relative_errors;
     local_relative_errors.reserve(bh_particles.size());
 
-    // Obliczamy referencyjne siły O(N^2) na aktualnych pozycjach Barnes-Hut
+    // Compute reference O(N^2) forces for the current Barnes-Hut positions
     //#pragma omp parallel for reduction(+:sum_diff_sq, sum_bf_sq) schedule(dynamic, 32)
     for (int i = 0; i < bh_particles.size(); ++i) 
     {
@@ -245,7 +245,7 @@ void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_par
         sum_diff_sq += diff_sq;
         sum_bf_sq += bf_sq;
 
-        // Błąd względny dla 95 percentyla
+        // Relative error for the 95th percentile
         double exact_norm = std::sqrt(bf_sq);
         double diff_norm = std::sqrt(diff_sq);
         if (exact_norm > 1e-6) {
@@ -267,8 +267,8 @@ void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_par
     }
 
     std::cout << std::fixed << std::setprecision(4);
-    std::cout << "Globalny blad sily (RMS): " << rms_error * 100.0 << " %\n";
-    std::cout << "Blad 95. percentyla:      " << p95_error * 100.0 << " %\n";
+    std::cout << "Global force error (RMS): " << rms_error * 100.0 << " %\n";
+    std::cout << "95th percentile error:      " << p95_error * 100.0 << " %\n";
     std::cout << "--------------------------------------------------\n";
 }
 
@@ -287,7 +287,7 @@ int mainMain()
    std::ifstream inFile("start_5000k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_5000k.txt!\n";
+        std::cerr << "Error: Could not open file start_5000k.txt!\n";
         return 1;
     }
 
@@ -335,15 +335,15 @@ int mainMain()
             insertParticle(0, i, treeArena, particles);
         }
         // if (frame == 0) {
-        //     // Rozmiar cząstek:
+        //     // Particle array size:
         //     size_t particlesMem = particles.capacity() * sizeof(Particle);
-        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     // Maximum reserved tree-arena size:
         //     size_t treeMem = treeArena.capacity() * sizeof(Node);
 
         //     std::cout << std::fixed << std::setprecision(6);
         //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-        //     std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-        //     std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        //     std::cout << "Algorithm memory usage: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Created " << treeArena.size() << " tree nodes.\n";
         //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
         //     std::cout << "Size of Node (V4/V5): " << sizeof(Node) << " bytes\n";
         // }
@@ -354,8 +354,8 @@ int mainMain()
         totalTreeBuildTime += timer.stopTime();
         totalCyclesTree += timer.stopCycles();
         // if(frame == 0) {
-        //     std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime) << " ms\n";
-        //     std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree) << " cykli\n";
+        //     std::cout << "Tree construction time: " << (totalTreeBuildTime) << " ms\n";
+        //     std::cout << "Tree construction cycles: " << std::fixed << (totalCyclesTree) << " cycles\n";
         // }
 
         timer.start();
@@ -369,7 +369,7 @@ int mainMain()
         // }
         // ---------------------------------------------------------
 
-        // AKTUALIZACJA POZYCJI I ZEROWANIE SIŁ
+        // POSITION UPDATE AND FORCE RESET
         for (auto& particle : particles)
         {
             particle.velocityX += particle.accX * TIME_STEP;
@@ -391,12 +391,12 @@ int mainMain()
         // }
     }
 
-    std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
-    std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
-    std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_5000k.txt");
+    std::cout << "Tree construction time: " << (totalTreeBuildTime / FRAMES) << " ms / frame\n";
+    std::cout << "Force calculation time:  " << (totalForceTime / FRAMES) << " ms / frame\n";
+    std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Tree construction cycles: " << std::fixed << (totalCyclesTree / FRAMES) << " cycles / frame\n";
+    std::cout << "Force calculation cycles:  " << std::fixed << (totalCyclesForce / FRAMES) << " cycles / frame\n";
+    // std::ifstream outFile("reference_5000k.txt");
     // if (!outFile) 
     // {
     //     std::cout << "file error.\n";
@@ -422,8 +422,8 @@ int mainMain()
     //     outFile.close();
         
     //     float meanAbsoluteError = totalError / NUM_PARTICLES;
-    //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
-    //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
+    //     std::cout << "Mean absolute position error (MAE): " << meanAbsoluteError << " units\n";
+    //     std::cout << "Maximum position error: " << maxError << " units\n";
     // }
     return 0;
 }

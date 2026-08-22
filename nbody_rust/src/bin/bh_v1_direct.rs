@@ -39,7 +39,7 @@ fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     let mut total_mass = 0.0;
 
     for p in particles {
-        // Rzutowanie na f64 chroni przed utratą precyzji
+        // Casting to f64 reduces precision loss
         let mass = p.mass as f64;
         let vx = p.velocity_x as f64;
         let vy = p.velocity_y as f64;
@@ -68,7 +68,7 @@ fn main() {
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_1k.txt. Czy na pewno wygenerowales plik?");
+            eprintln!("Error: Could not open file start_1k.txt. Did you generate the file?");
             std::process::exit(1);
         }
     };
@@ -76,9 +76,9 @@ fn main() {
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("Blad odczytu linii z pliku");
+        let line = line.expect("Error while reading a line from the file");
 
-        // Rozdzielamy linię po spacjach
+        // Split the line by spaces
         let parts: Vec<&str> = line.split_whitespace().collect();
 
         if parts.len() == 5 {
@@ -135,11 +135,11 @@ fn main() {
         if j == 0 {
             let particles_mem: usize = particles.capacity() * std::mem::size_of::<Particle>();
             let total_app_mem_mb = (particles_mem) as f64 / (1024.0 * 1024.0);
-            println!("Zuzycie pamieci algorytmu: {} MB", total_app_mem_mb);
+            println!("Algorithm memory usage: {} MB", total_app_mem_mb);
             println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
         }
 
-        // Całkowanie Euler'a (Aktualizacja pozycji)
+        // Euler integration (position update)
         for i in 0..NUM_PARTICLES {
             particles[i].velocity_x += particles[i].acc_x * TIME_STEP;
             particles[i].velocity_y += particles[i].acc_y * TIME_STEP;
@@ -161,13 +161,13 @@ fn main() {
         }
     }
 
-    let out_file = std::fs::File::create("wzorzec_50k.txt").unwrap();
+    let out_file = std::fs::File::create("reference_50k.txt").unwrap();
     let mut writer = std::io::BufWriter::new(out_file);
     for p in &particles {
         writeln!(writer, "{:.6} {:.6}", p.pos_x, p.pos_y).unwrap();
     }
 
-    println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
-    println!("Cykle liczenia sil: {} cykli / klatke", total_cycles_force / (FRAMES as u64));
-    println!("Calkowity czas symulacji: {:.4} ms", total_force_time_ms);
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (FRAMES as f64));
+    println!("Force calculation cycles: {} cycles / frame", total_cycles_force / (FRAMES as u64));
+    println!("Total simulation time: {:.4} ms", total_force_time_ms);
 }

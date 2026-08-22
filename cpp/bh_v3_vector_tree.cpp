@@ -156,7 +156,7 @@ PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particle
 
 void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& particles, const std::vector<Node>& arena)
 {
-    //Zabezpieczenie przed pustymi dziećmi
+    //Guard against empty children
     if (nodeIdx == -1) return;
 
     Particle& p = particles[pIdx];
@@ -205,7 +205,7 @@ int mainMain()
     std::ifstream inFile("start_5000k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_5000k.txt!\n";
+        std::cerr << "Error: Could not open file start_5000k.txt!\n";
         return 1;
     }
 
@@ -254,15 +254,15 @@ int mainMain()
         }
 
         // if (frame == 0) {
-        //     // Rozmiar cząstek:
+        //     // Particle array size:
         //     size_t particlesMem = particles.capacity() * sizeof(Particle);
-        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     // Maximum reserved tree-arena size:
         //     size_t treeMem = treeArena.capacity() * sizeof(Node);
 
         //     std::cout << std::fixed << std::setprecision(6);
         //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-        //     std::cout << "zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-        //     std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        //     std::cout << "algorithm memory usage: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Created " << treeArena.size() << " tree nodes.\n";
         //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
         //     std::cout << "Size of Node (V3): " << sizeof(Node) << " bytes\n";
         // }
@@ -297,12 +297,12 @@ int mainMain()
         //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         // }
     }
-    std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
-    std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
-    std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_5000k.txt");
+    std::cout << "Tree construction time: " << (totalTreeBuildTime / FRAMES) << " ms / frame\n";
+    std::cout << "Force calculation time:  " << (totalForceTime / FRAMES) << " ms / frame\n";
+    std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Tree construction cycles: " << std::fixed << (totalCyclesTree / FRAMES) << " cycles / frame\n";
+    std::cout << "Force calculation cycles:  " << std::fixed << (totalCyclesForce / FRAMES) << " cycles / frame\n";
+    // std::ifstream outFile("reference_5000k.txt");
     // if (!outFile) 
     // {
     //     std::cout << "file error.\n";
@@ -328,8 +328,8 @@ int mainMain()
     //     outFile.close();
         
     //     float meanAbsoluteError = totalError / NUM_PARTICLES;
-    //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
-    //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
+    //     std::cout << "Mean absolute position error (MAE): " << meanAbsoluteError << " units\n";
+    //     std::cout << "Maximum position error: " << maxError << " units\n";
     // }
     return 0;
 }

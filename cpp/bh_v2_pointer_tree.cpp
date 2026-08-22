@@ -2,7 +2,7 @@
 #include <cmath>
 #include "timer.hpp"
 #include <iostream>
-#include <fstream> 
+#include <fstream>
 #include <cmath>
 #include <iomanip>
 
@@ -12,7 +12,7 @@ constexpr float THETA = 0.3f;
 constexpr float FRAMES = 50;
 constexpr int NUM_PARTICLES = 2000000;
 
-struct NodePtr 
+struct NodePtr
 {
     float boundsX{0.0f}, boundsY{0.0f}, halfSize{0.0f};
     float mass{0.0f}, centerX{0.0f}, centerY{0.0f};
@@ -31,7 +31,7 @@ struct Particle
     float posY{0.0f};
 };
 
-int getQuadrantPtr(const NodePtr* node, const Particle& particle) 
+int getQuadrantPtr(const NodePtr* node, const Particle& particle)
 {
     int index = 0;
     if (particle.posX > node->boundsX) index += 1;
@@ -39,28 +39,28 @@ int getQuadrantPtr(const NodePtr* node, const Particle& particle)
     return index;
 }
 
-//Budowa drzewa 
-void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles) 
+//Tree construction
+void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles)
 {
-    if (node->particleIndex != -1) 
+    if (node->particleIndex != -1)
     {
         int oldIdx = node->particleIndex;
         float shift = 0.0001f;
-        while (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY) 
+        while (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY)
         {
             particles[pIdx].posX += shift;
             shift *= 2.0f;
         }
     }
 
-    if (node->children[0] != nullptr) 
+    if (node->children[0] != nullptr)
     {
         int quad = getQuadrantPtr(node, particles[pIdx]);
         insertParticlePtr(node->children[quad], pIdx, particles);
         return;
     }
 
-    if (node->particleIndex == -1) 
+    if (node->particleIndex == -1)
     {
         node->particleIndex = pIdx;
         return;
@@ -70,7 +70,7 @@ void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles
     node->particleIndex = -1;
     float hSize = node->halfSize / 2.0f;
 
-    for (int i = 0; i < 4; ++i) 
+    for (int i = 0; i < 4; ++i)
     {
         node->children[i] = new NodePtr(); //Alokacja na stercie
         node->children[i]->halfSize = hSize;
@@ -82,16 +82,16 @@ void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles
     insertParticlePtr(node, pIdx, particles);
 }
 
-// Obliczanie Środka Masy (Rekurencja od dołu do góry)
-void computeMassDistributionPtr(NodePtr* node, const std::vector<Particle>& particles) 
+// Center-of-mass computation (bottom-up recursion)
+void computeMassDistributionPtr(NodePtr* node, const std::vector<Particle>& particles)
 {
-    if (node->children[0] != nullptr) 
+    if (node->children[0] != nullptr)
     {
         node->mass = 0.0f;
         node->centerX = 0.0f;
         node->centerY = 0.0f;
 
-        for (int i = 0; i < 4; ++i) 
+        for (int i = 0; i < 4; ++i)
         {
             computeMassDistributionPtr(node->children[i], particles);
             float childMass = node->children[i]->mass;
@@ -100,13 +100,13 @@ void computeMassDistributionPtr(NodePtr* node, const std::vector<Particle>& part
             node->centerY += node->children[i]->centerY * childMass;
         }
 
-        if (node->mass > 0.0f) 
+        if (node->mass > 0.0f)
         {
             node->centerX /= node->mass;
             node->centerY /= node->mass;
         }
-    } 
-    else if (node->particleIndex != -1) 
+    }
+    else if (node->particleIndex != -1)
     {
         const Particle& p = particles[node->particleIndex];
         node->mass = p.mass;
@@ -115,8 +115,8 @@ void computeMassDistributionPtr(NodePtr* node, const std::vector<Particle>& part
     }
 }
 
-// Obliczanie Sił (Rekurencja top-down)
-void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particles) 
+// Force computation (top-down recursion)
+void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particles)
 {
     if (node == nullptr) return;
 
@@ -126,34 +126,34 @@ void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particle
     float distSq = dx * dx + dy * dy;
 
     if (distSq < 1e-5f) return;
-    
+
     float side_length = node->halfSize * 2.0f;
-    // if ((s / dist) < THETA 
+    // if ((s / dist) < THETA
     float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
-    if (r_c_sq < THETA * THETA * distSq || node->children[0] == nullptr) 
+    if (r_c_sq < THETA * THETA * distSq || node->children[0] == nullptr)
     {
         float dist = std::sqrt(distSq);
         float acc = G * node->mass / (distSq + 1.0f);
         p.accX += acc * (dx / dist);
         p.accY += acc * (dy / dist);
-    } 
-    else 
+    }
+    else
     {
-        for (int i = 0; i < 4; ++i) 
+        for (int i = 0; i < 4; ++i)
         {
             calculateForcesPtr(pIdx, node->children[i], particles);
         }
     }
 }
 
-void deleteTreePtr(NodePtr* node) 
+void deleteTreePtr(NodePtr* node)
 {
     if (node == nullptr) return;
-    for (int i = 0; i < 4; ++i) 
+    for (int i = 0; i < 4; ++i)
     {
         deleteTreePtr(node->children[i]);
     }
-    delete node; 
+    delete node;
 }
 
 int countNodesPtr(NodePtr* node)
@@ -217,14 +217,14 @@ int mainMain()
     std::ifstream inFile("start_2000k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_2000k.txt!\n";
+        std::cerr << "Error: Could not open file start_2000k.txt!\n";
         return 1;
     }
 
     Particle p;
     p.accX = 0.0f;
     p.accY = 0.0f;
-    
+
     while (inFile >> p.posX >> p.posY >> p.velocityX >> p.velocityY >> p.mass)
     {
         particles.push_back(p);
@@ -234,10 +234,10 @@ int mainMain()
 
     for (int frame = 0; frame < FRAMES; ++frame)
     {
-        timer.start(); 
+        timer.start();
         float minX = particles[0].posX, maxX = particles[0].posX;
         float minY = particles[0].posY, maxY = particles[0].posY;
-        
+
         for (const auto& p : particles)
         {
             if (p.posX < minX) minX = p.posX;
@@ -261,16 +261,16 @@ int mainMain()
             insertParticlePtr(rootPtr, i, particles);
         }
         // if (frame == 0) {
-        //     //Rozmiar cząstek:
+        //     //Particle array size:
         //     size_t particlesMem = particles.capacity() * sizeof(Particle);
-        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     // Maximum reserved tree-arena size:
         //     int nodeCount = countNodesPtr(rootPtr);
         //     size_t treeMem = nodeCount * sizeof(NodePtr);
 
         //     std::cout << std::fixed << std::setprecision(6);
         //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-        //     std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-        //     std::cout << "Stworzono " << nodeCount << " wezlow drzewa.\n";
+        //     std::cout << "Algorithm memory usage: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Created " << nodeCount << " tree nodes.\n";
         //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
         //     std::cout << "Size of NodePtr (V2): " << sizeof(NodePtr) << " bytes\n";
         // }
@@ -292,9 +292,9 @@ int mainMain()
             particle.velocityY += particle.accY * TIME_STEP;
             particle.posX += particle.velocityX * TIME_STEP;
             particle.posY += particle.velocityY * TIME_STEP;
-            
-            particle.accX = 0.0f; 
-            particle.accY = 0.0f; 
+
+            particle.accX = 0.0f;
+            particle.accY = 0.0f;
         }
         totalForceTime += timer.stopTime();
         totalCyclesForce += timer.stopCycles();
@@ -306,39 +306,39 @@ int mainMain()
         //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         // }
     }
-    std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
-    std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
-    std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_2000k.txt");
-    // if (!outFile) 
+    std::cout << "Tree construction time: " << (totalTreeBuildTime / FRAMES) << " ms / frame\n";
+    std::cout << "Force calculation time:  " << (totalForceTime / FRAMES) << " ms / frame\n";
+    std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Tree construction cycles: " << std::fixed << (totalCyclesTree / FRAMES) << " cycles / frame\n";
+    std::cout << "Force calculation cycles:  " << std::fixed << (totalCyclesForce / FRAMES) << " cycles / frame\n";
+    // std::ifstream outFile("reference_2000k.txt");
+    // if (!outFile)
     // {
     //     std::cout << "file error.\n";
-    // } 
-    // else 
+    // }
+    // else
     // {
     //     float totalError = 0.0f;
     //     float maxError = 0.0f;
     //     float refX = 0.0f, refY = 0.0f;
-        
+
     //     for (const auto& p : particles)
     //     {
     //         outFile >> refX >> refY;
-            
+
     //         float dx = p.posX - refX;
     //         float dy = p.posY - refY;
     //         float currentError = std::sqrt(dx * dx + dy * dy);
     //         totalError += currentError;
     //         if (currentError > maxError) {
-    //             maxError = currentError; 
+    //             maxError = currentError;
     //         }
     //     }
     //     outFile.close();
-        
+
     //     float meanAbsoluteError = totalError / NUM_PARTICLES;
-    //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
-    //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
+    //     std::cout << "Mean absolute position error (MAE): " << meanAbsoluteError << " units\n";
+    //     std::cout << "Maximum position error: " << maxError << " units\n";
     // }
     return 0;
 }

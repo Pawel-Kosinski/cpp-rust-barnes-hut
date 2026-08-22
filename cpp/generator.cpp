@@ -15,7 +15,7 @@ int main()
     
     std::ofstream outFile("start_10kk.txt");
     if (!outFile) {
-        std::cerr << "Blad zapisu pliku!\n";
+        std::cerr << "Error while writing the file!\n";
         return 1;
     }
 
@@ -30,8 +30,8 @@ int main()
     for (int i = 0; i < NUM_PARTICLES; ++i)
     {
         float r;
-        // PRAWIDŁOWE ODCIĘCIE OGONÓW (Rejection Sampling)
-        // Zamiast lepić cząstki do krawędzi, losujemy do skutku.
+        // Correct tail truncation (rejection sampling)
+        // Instead of clamping particles to the boundary, sample until accepted.
         do {
             float u = dist(rng);
             // Zabezpieczenie tylko przed u=1.0 (dzielenie przez zero)
@@ -44,14 +44,14 @@ int main()
         float posX = centerX + r * std::cos(theta);
         float posY = centerY + r * std::sin(theta);
 
-        // PRAWIDŁOWA FIZYKA ORBITALNA
-        // Obliczamy masę zamkniętą wewnątrz promienia R dla 2D Plummera
+        // Orbital velocity initialization
+        // Compute enclosed mass within radius R for the 2D Plummer distribution
         float masEnclosed = totalMass * (r * r) / (r * r + a * a);
         
-        // Czysty wzór na prędkość na orbicie kołowej (zmiękczony epsilonem)
+        // Circular-orbit velocity formula with softened epsilon
         float vCirc = std::sqrt((G * masEnclosed) / (r + 0.1f)); 
         
-        // JEDYNY dopuszczalny szum to ten łamiący idealną symetrię (tu: +/- 15%)
+        // The only perturbation used here breaks perfect symmetry (+/- 15%)
         float perturbation = 0.85f + dist(rng) * 0.30f;
         float v = vCirc * perturbation;
 

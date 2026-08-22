@@ -67,7 +67,7 @@ int main()
     std::ifstream inFile("start_50k.txt");
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_100k.txt!\n";
+        std::cerr << "Error: Could not open file start_100k.txt!\n";
         return 1;
     }
 
@@ -86,7 +86,7 @@ int main()
             size_t particlesMem = particles.capacity() * sizeof(Particle);
             double totalAppMemMB = static_cast<double>(particlesMem) / (1024.0 * 1024.0);
             std::cout << std::fixed << std::setprecision(6);
-            std::cout << "Zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
+            std::cout << "Algorithm memory usage: " << totalAppMemMB << " MB\n";
             std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
         }
         timer.start();
@@ -141,17 +141,17 @@ int main()
             std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         }
     }
-    std::cout << "Czas liczenia sil:  " << (time / FRAMES) << " ms / klatke\n";
-    std::cout << "Calkowity czas symulacji: " << (time) << " ms\n";
-    std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCycles / FRAMES) << " cykli / klatke\n";
+    std::cout << "Force calculation time:  " << (time / FRAMES) << " ms / frame\n";
+    std::cout << "Total simulation time: " << (time) << " ms\n";
+    std::cout << "Force calculation cycles:  " << std::fixed << (totalCycles / FRAMES) << " cycles / frame\n";
 
-    std::ofstream outFile("wzorzec_50k.txt");
+    std::ofstream outFile("reference_50k.txt");
     outFile << std::fixed << std::setprecision(6);
     for (const auto& p : particles)
     {
         outFile << p.posX << " " << p.posY << "\n";
     }
     outFile.close();
-    std::cout << "Zapisano pozycje referencyjne do pliku wzorzec_100k.txt\n";
+    std::cout << "Saved reference positions to file reference_50k.txt\n";
     return 0;
 }

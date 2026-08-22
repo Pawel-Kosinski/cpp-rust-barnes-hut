@@ -167,7 +167,7 @@ fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Ve
     }
 }
 
-// Zmieniono sygnaturę, aby nie modyfikować bezpośrednio wektora wewnątrz funkcji.
+// The signature was changed to avoid modifying the vector directly inside the function.
 // Teraz funkcja tylko oblicza i ZWRACA nowe przyspieszenie.
 fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: &[Particle]) -> (f32, f32)
 {
@@ -226,7 +226,7 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
 //     let mut total_mass = 0.0;
 
 //     for p in particles {
-//         // Rzutowanie na f64 chroni przed utratą precyzji
+//         // Casting to f64 reduces precision loss
 //         let mass = p.mass as f64;
 //         let vx = p.velocity_x as f64;
 //         let vy = p.velocity_y as f64;
@@ -250,7 +250,7 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
 
 #[allow(dead_code)]
 fn validateForceAccuracyParallel(current_frame: usize, bh_particles: &[Particle], bh_forces: &[(f32, f32)]) {
-    println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
+    println!("\n--- FORCE ACCURACY VALIDATION (Frame {}) ---", current_frame);
 
     let results: Vec<(f64, f64, Option<f64>)> = bh_particles.par_iter().enumerate().map(|(i, _)| {
         let mut exact_acc_x: f32 = 0.0;
@@ -312,8 +312,8 @@ fn validateForceAccuracyParallel(current_frame: usize, bh_particles: &[Particle]
         p95_error = local_relative_errors[p95_index];
     }
 
-    println!("Globalny blad sily (RMS): {:.4} %", rms_error * 100.0);
-    println!("Blad 95. percentyla:      {:.4} %", p95_error * 100.0);
+    println!("Global force error (RMS): {:.4} %", rms_error * 100.0);
+    println!("95th percentile error:      {:.4} %", p95_error * 100.0);
     println!("--------------------------------------------------");
 }
 
@@ -327,7 +327,7 @@ fn mainMain()
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku {}.", FILEPATH);
+            eprintln!("Error: Could not open file {}.", FILEPATH);
             std::process::exit(1);
         }
     };
@@ -335,7 +335,7 @@ fn mainMain()
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("Blad odczytu linii z pliku");
+        let line = line.expect("Error while reading a line from the file");
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() == 5 {
             particles.push(Particle {
@@ -394,8 +394,8 @@ fn mainMain()
         //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
         //     let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
         //     let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
-        //     println!("Zuzycie pamieci algorytmu: {:.6} MB", totalAppMemMB);
-        //     println!("Stworzono {} wezlow drzewa", arena.len());
+        //     println!("Algorithm memory usage: {:.6} MB", totalAppMemMB);
+        //     println!("Created {} tree nodes", arena.len());
         //     println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
         //     println!("Size of Node (V4/V5): {:.6} bytes", std::mem::size_of::<Node>());
         // }
@@ -407,17 +407,17 @@ fn mainMain()
         total_cycles_tree += unsafe { _rdtsc() } - start_cycles;
 
         //  if j == 0 {
-        //     println!("Czas budowy drzewa klatka 0: {:.4} ms", total_tree_time_ms);
-        //     println!("Cykle budowy drzewa klatka 0: {} cykli", total_cycles_tree);
+        //     println!("Tree construction time frame 0: {:.4} ms", total_tree_time_ms);
+        //     println!("Tree construction cycles frame 0: {} cycles", total_cycles_tree);
         // }
 
         start_time = Instant::now();
         start_cycles = unsafe { _rdtsc() };
 
-        // Iterator `par_iter_mut()` dzieli wektor cząstek pomiędzy rdzenie CPU
+        // The `par_iter_mut()` iterator splits the particle vector across CPU cores
         //particles.par_iter_mut().enumerate().for_each(|(i, p)| {});
 
-        //Policz siły wielowątkowo i zbierz je do nowego wektora
+        //Compute forces in parallel and collect them into a new vector
         let forces: Vec<(f32, f32)> = (0..NUM_PARTICLES).into_par_iter().map(|i| {
              calculateForces(i, 0, &arena, &particles)
         }).collect();
@@ -426,7 +426,7 @@ fn mainMain()
         //     validateForceAccuracyParallel(j, &particles, &forces);
         // }
 
-        //Zaaplikuj siły równolegle do oryginalnych cząstek
+        //Apply forces in parallel to the original particles
         particles.par_iter_mut().zip(forces.par_iter()).for_each(|(p, (acc_x, acc_y))| {
             p.velocity_x += acc_x * TIME_STEP;
             p.velocity_y += acc_y * TIME_STEP;
@@ -448,13 +448,13 @@ fn mainMain()
         // }
     }
 
-    println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
-    println!("Cykle liczenia sil: {} cykli / klatke", total_cycles_force / (FRAMES as u64));
-    println!("Calkowity czas symulacji: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
-    println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
-    println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (FRAMES as f64));
+    println!("Force calculation cycles: {} cycles / frame", total_cycles_force / (FRAMES as u64));
+    println!("Total simulation time: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
+    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (FRAMES as f64));
+    println!("Tree construction cycles: {} cycles / frame", total_cycles_tree / (FRAMES as u64));
 
-    // let ref_path = Path::new("wzorzec_1000k.txt");
+    // let ref_path = Path::new("reference_1000k.txt");
     // match File::open(&ref_path) {
     //     Ok(ref_file) => {
     //         let ref_reader = io::BufReader::new(ref_file);
@@ -483,8 +483,8 @@ fn mainMain()
     //         }
     //         if particle_count > 0 {
     //             let mean_absolute_error = total_error / particle_count as f32;
-    //             println!("Sredni blad pozycji (MAE): {:.6} jednostek", mean_absolute_error);
-    //             println!("Maksymalny blad pozycji: {:.6} jednostek", max_error);
+    //             println!("Mean absolute position error (MAE): {:.6} units", mean_absolute_error);
+    //             println!("Maximum position error: {:.6} units", max_error);
     //         }
     //     }
     //     Err(_) => { eprintln!("file error."); }
