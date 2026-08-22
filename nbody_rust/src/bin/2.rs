@@ -9,7 +9,7 @@ use std::path::Path;
 
 const NUM_PARTICLES: usize = 1000000;
 const FRAMES: usize = 50;
-const TIME_STEP: f32 = 0.016; 
+const TIME_STEP: f32 = 0.016;
 const THETA: f32 = 0.3;
 const G : f32 = 1.0;
 
@@ -49,7 +49,7 @@ impl Default for NodePtr {
     }
 }
 
-fn getQuadrant(node: &NodePtr, particle: &Particle) -> i32 
+fn getQuadrant(node: &NodePtr, particle: &Particle) -> i32
 {
     let mut quadrant = 0;
     if particle.pos_x > node.bounds_x { quadrant += 1; }
@@ -63,7 +63,7 @@ fn insertParticlePtr(node: &mut NodePtr, pIdx: usize, particles: &mut Vec<Partic
     {
         let oldIdx: usize = node.particle_index;
         let mut shift = 0.0001;
-        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y 
+        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
         {
             particles[pIdx].pos_x += shift;
             shift *= 2.0; // Zwiększamy przesunięcie dwukrotnie, aż 'f32' to zarejestruje
@@ -88,7 +88,7 @@ fn insertParticlePtr(node: &mut NodePtr, pIdx: usize, particles: &mut Vec<Partic
     let half_size = node.half_size / 2.0;
     for i in 0..4
     {
-        let offset_x = ((i % 2) * 2) as f32 - 1.0; 
+        let offset_x = ((i % 2) * 2) as f32 - 1.0;
         let offset_y = ((i / 2) * 2) as f32 - 1.0;
 
         node.children[i] = Some(Box::new(NodePtr {
@@ -106,9 +106,9 @@ fn insertParticlePtr(node: &mut NodePtr, pIdx: usize, particles: &mut Vec<Partic
     insertParticlePtr(node, pIdx, particles);
 }
 
-fn computeMassDistributionPtr(node: &mut NodePtr, particles: &Vec<Particle>) 
+fn computeMassDistributionPtr(node: &mut NodePtr, particles: &Vec<Particle>)
 {
-    if node.children[0].is_some() 
+    if node.children[0].is_some()
     {
         node.mass = 0.0;
         node.center_of_mass_x = 0.0;
@@ -122,20 +122,20 @@ fn computeMassDistributionPtr(node: &mut NodePtr, particles: &Vec<Particle>)
             node.center_of_mass_x += child.center_of_mass_x * child.mass;
             node.center_of_mass_y += child.center_of_mass_y * child.mass;
         }
-        if node.mass > 0.0 
+        if node.mass > 0.0
         {
             node.center_of_mass_x /= node.mass;
             node.center_of_mass_y /= node.mass;
         }
     }
-    else if node.particle_index != usize::MAX 
+    else if node.particle_index != usize::MAX
     {
         let pIdx = node.particle_index;
         node.mass = particles[pIdx].mass;
         node.center_of_mass_x = particles[pIdx].pos_x;
         node.center_of_mass_y = particles[pIdx].pos_y;
     }
-    
+
 }
 
 fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>)
@@ -152,7 +152,7 @@ fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>
 
     if r_sq < THETA * THETA * dist_sq || node.children[0].is_none()
     {
-        let dist = dist_sq.sqrt(); 
+        let dist = dist_sq.sqrt();
         let acc = G * node.mass / (dist_sq + 1.0);
         particles[pIdx].acc_x += acc * (dx / dist);
         particles[pIdx].acc_y += acc * (dy / dist);
@@ -166,19 +166,20 @@ fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>
     }
 }
 
+#[allow(dead_code)]
 fn countNodesPtr(node: &NodePtr) -> i32
 {
-    let mut count: i32 = 1; 
+    let mut count: i32 = 1;
     for i in 0..4
     {
-        if node.children[i].is_some() 
+        if node.children[i].is_some()
         {
             count += countNodesPtr(node.children[i].as_ref().unwrap());
         }
     }
     return count;
 }
- 
+
 pub struct PhysicsMetrics {
     pub total_momentum_x: f64,
     pub total_momentum_y: f64,
@@ -187,7 +188,8 @@ pub struct PhysicsMetrics {
     pub center_y: f64,
 }
 
-pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
+#[allow(dead_code)]
+fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     let mut m = PhysicsMetrics {
         total_momentum_x: 0.0,
         total_momentum_y: 0.0,
@@ -220,6 +222,7 @@ pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     m
 }
 
+#[allow(dead_code)]
 fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
     println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
 
@@ -263,7 +266,7 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
     }
 
     let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
-    
+
     local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut p95_error = 0.0;
     if !local_relative_errors.is_empty() {
@@ -279,7 +282,7 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
 fn mainMain()
 {
     let mut particles = Vec::new();
-    
+
     let path = Path::new("start_1000k.txt");
     let file = match File::open(&path) {
         Ok(f) => f,
@@ -288,15 +291,15 @@ fn mainMain()
             std::process::exit(1);
         }
     };
-    
+
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
         let line = line.expect("Blad odczytu linii z pliku");
-        
+
         // Rozdzielamy linię po spacjach
         let parts: Vec<&str> = line.split_whitespace().collect();
-        
+
         if parts.len() == 5 {
             particles.push(Particle {
                 pos_x: parts[0].parse().unwrap(),
@@ -315,10 +318,10 @@ fn mainMain()
     let mut total_cycles_force: u64 = 0;
     let mut total_cycles_tree: u64 = 0;
 
-    for i in 0..FRAMES {
-        
+    for _i in 0..FRAMES {
+
         let mut start_time = Instant::now();
-        let mut start_cycles = unsafe { _rdtsc() }; 
+        let mut start_cycles = unsafe { _rdtsc() };
 
         let mut minX = particles[0].pos_x;
         let mut maxX = particles[0].pos_x;
@@ -417,7 +420,7 @@ fn mainMain()
     //             if idx >= NUM_PARTICLES {
     //                 break;
     //             }
-                
+
     //             let line = match line {
     //                 Ok(l) => l,
     //                 Err(_) => break,

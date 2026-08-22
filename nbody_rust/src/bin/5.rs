@@ -10,7 +10,7 @@ use rayon::{ThreadPoolBuilder, prelude::*};
 
 const NUM_PARTICLES: usize = 1000000;
 const FRAMES: usize = 50;
-const TIME_STEP: f32 = 0.016; 
+const TIME_STEP: f32 = 0.016;
 const THETA: f32 = 0.3;
 const G : f32 = 1.0;
 const FILEPATH: &str = "start_1000k.txt";
@@ -54,7 +54,7 @@ impl Default for Node {
     }
 }
 
-fn getQuadrant(node: &Node, particle: &Particle) -> i32 
+fn getQuadrant(node: &Node, particle: &Particle) -> i32
 {
     let mut quadrant = 0;
     if particle.pos_x > node.bounds_x { quadrant += 1; }
@@ -81,7 +81,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     {
         let oldIdx: usize = arena[nodeIdx].particle_index;
         let mut shift = 0.0001;
-        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y 
+        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
         {
             particles[pIdx].pos_x += shift;
             shift *= 2.0;
@@ -104,12 +104,12 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     let oldPIdx = arena[nodeIdx].particle_index;
     arena[nodeIdx].particle_index = usize::MAX;
     let half_size = arena[nodeIdx].half_size / 2.0;
-    
+
     for i in 0..4
     {
-        let offset_x = ((i % 2) * 2) as f32 - 1.0; 
+        let offset_x = ((i % 2) * 2) as f32 - 1.0;
         let offset_y = ((i / 2) * 2) as f32 - 1.0;
-        
+
         let child_idx = arena.len();
         arena[nodeIdx].children[i] = child_idx;
 
@@ -129,7 +129,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     insertParticle(nodeIdx, pIdx, arena, particles);
 }
 
-fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>) 
+fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>)
 {
     if arena[nodeIdx].children[0] != usize::MAX
     {
@@ -141,25 +141,25 @@ fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Ve
         {
             let childIdx = arena[nodeIdx].children[i];
             computeMassDistribution(childIdx, arena, particles);
-            
+
             arena[nodeIdx].mass += arena[childIdx].mass;
             arena[nodeIdx].center_of_mass_x += arena[childIdx].center_of_mass_x * arena[childIdx].mass;
             arena[nodeIdx].center_of_mass_y += arena[childIdx].center_of_mass_y * arena[childIdx].mass;
         }
-        if arena[nodeIdx].mass > 0.0 
+        if arena[nodeIdx].mass > 0.0
         {
             arena[nodeIdx].center_of_mass_x /= arena[nodeIdx].mass;
             arena[nodeIdx].center_of_mass_y /= arena[nodeIdx].mass;
         }
     }
-    else if arena[nodeIdx].particle_index != usize::MAX 
+    else if arena[nodeIdx].particle_index != usize::MAX
     {
         let pIdx = arena[nodeIdx].particle_index;
         arena[nodeIdx].mass = particles[pIdx].mass;
         arena[nodeIdx].center_of_mass_x = particles[pIdx].pos_x;
         arena[nodeIdx].center_of_mass_y = particles[pIdx].pos_y;
     }
-    else 
+    else
     {
         arena[nodeIdx].mass = 0.0;
         arena[nodeIdx].center_of_mass_x = 0.0;
@@ -175,7 +175,7 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
 
     let mut acc_x = 0.0;
     let mut acc_y = 0.0;
-    
+
     let mut currNodeIdx: usize = startNodeIdx;
     while currNodeIdx != usize::MAX
     {
@@ -203,7 +203,7 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
             currNodeIdx = node.children[0];
         }
     }
-    
+
     (acc_x, acc_y)
 }
 
@@ -236,7 +236,7 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
 //         m.total_momentum_x += mass * vx;
 //         m.total_momentum_y += mass * vy;
 //         m.total_kinetic_energy += 0.5 * mass * (vx * vx + vy * vy);
-        
+
 //         m.center_x += mass * px;
 //         m.center_y += mass * py;
 //         total_mass += mass;
@@ -248,6 +248,7 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
 //     m
 // }
 
+#[allow(dead_code)]
 fn validateForceAccuracyParallel(current_frame: usize, bh_particles: &[Particle], bh_forces: &[(f32, f32)]) {
     println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
 
@@ -280,7 +281,7 @@ fn validateForceAccuracyParallel(current_frame: usize, bh_particles: &[Particle]
 
         let exact_norm = bf_sq.sqrt();
         let diff_norm = diff_sq.sqrt();
-        
+
         let rel_err = if exact_norm > 1e-6 {
             Some(diff_norm / exact_norm)
         } else {
@@ -303,7 +304,7 @@ fn validateForceAccuracyParallel(current_frame: usize, bh_particles: &[Particle]
     }
 
     let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
-    
+
     local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut p95_error = 0.0;
     if !local_relative_errors.is_empty() {
@@ -321,7 +322,7 @@ fn mainMain()
     let mut particles = Vec::new();
     //let mut arena: Vec<Node> = Vec::with_capacity(3 * NUM_PARTICLES);
     let mut arena: Vec<Node> = Vec::new();
-    
+
     let path = Path::new(FILEPATH);
     let file = match File::open(&path) {
         Ok(f) => f,
@@ -330,7 +331,7 @@ fn mainMain()
             std::process::exit(1);
         }
     };
-    
+
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
@@ -354,10 +355,10 @@ fn mainMain()
     let mut total_cycles_force: u64 = 0;
     let mut total_cycles_tree: u64 = 0;
 
-    for j in 0..FRAMES {
-        
+    for _j in 0..FRAMES {
+
         let mut start_time = Instant::now();
-        let mut start_cycles = unsafe { _rdtsc() }; 
+        let mut start_cycles = unsafe { _rdtsc() };
 
         let mut minX = particles[0].pos_x;
         let mut maxX = particles[0].pos_x;
@@ -401,7 +402,7 @@ fn mainMain()
 
         computeMassDistribution(0, &mut arena, &particles);
         threadTree(0, usize::MAX, &mut arena);
-        
+
         total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
         total_cycles_tree += unsafe { _rdtsc() } - start_cycles;
 
@@ -412,10 +413,10 @@ fn mainMain()
 
         start_time = Instant::now();
         start_cycles = unsafe { _rdtsc() };
-        
+
         // Iterator `par_iter_mut()` dzieli wektor cząstek pomiędzy rdzenie CPU
         //particles.par_iter_mut().enumerate().for_each(|(i, p)| {});
-        
+
         //Policz siły wielowątkowo i zbierz je do nowego wektora
         let forces: Vec<(f32, f32)> = (0..NUM_PARTICLES).into_par_iter().map(|i| {
              calculateForces(i, 0, &arena, &particles)
@@ -434,7 +435,7 @@ fn mainMain()
             p.acc_x = 0.0;
             p.acc_y = 0.0;
         });
-        
+
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
         total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
@@ -492,7 +493,7 @@ fn mainMain()
 
 fn main() {
     ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
-    for i in 0..3 {
+    for _i in 0..3 {
         mainMain();
     }
 }

@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 
-use std::os::windows::thread;
 use std::time::Instant;
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::_rdtsc;
@@ -10,7 +9,7 @@ use std::path::Path;
 
 const NUM_PARTICLES: usize = 1000000;
 const FRAMES: usize = 50;
-const TIME_STEP: f32 = 0.016; 
+const TIME_STEP: f32 = 0.016;
 const THETA: f32 = 0.3;
 const G : f32 = 1.0;
 
@@ -53,7 +52,7 @@ impl Default for Node {
     }
 }
 
-fn getQuadrant(node: &Node, particle: &Particle) -> i32 
+fn getQuadrant(node: &Node, particle: &Particle) -> i32
 {
     let mut quadrant = 0;
     if particle.pos_x > node.bounds_x { quadrant += 1; }
@@ -81,7 +80,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     {
         let oldIdx: usize = arena[nodeIdx].particle_index;
         let mut shift = 0.0001;
-        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y 
+        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
         {
             particles[pIdx].pos_x += shift;
             shift *= 2.0;
@@ -106,7 +105,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     let half_size = arena[nodeIdx].half_size / 2.0;
     for i in 0..4
     {
-        let offset_x = ((i % 2) * 2) as f32 - 1.0; 
+        let offset_x = ((i % 2) * 2) as f32 - 1.0;
         let offset_y = ((i / 2) * 2) as f32 - 1.0;
         arena[nodeIdx].children[i] = arena.len();
 
@@ -126,7 +125,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     insertParticle(nodeIdx, pIdx, arena, particles);
 }
 
-fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>) 
+fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>)
 {
     //let node = &mut arena[nodeIdx];
     if arena[nodeIdx].children[0] != usize::MAX
@@ -144,20 +143,20 @@ fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Ve
             arena[nodeIdx].center_of_mass_x += arena[childIdx].center_of_mass_x * arena[childIdx].mass;
             arena[nodeIdx].center_of_mass_y += arena[childIdx].center_of_mass_y * arena[childIdx].mass;
         }
-        if arena[nodeIdx].mass > 0.0 
+        if arena[nodeIdx].mass > 0.0
         {
             arena[nodeIdx].center_of_mass_x /= arena[nodeIdx].mass;
             arena[nodeIdx].center_of_mass_y /= arena[nodeIdx].mass;
         }
     }
-    else if arena[nodeIdx].particle_index != usize::MAX 
+    else if arena[nodeIdx].particle_index != usize::MAX
     {
         let pIdx = arena[nodeIdx].particle_index;
         arena[nodeIdx].mass = particles[pIdx].mass;
         arena[nodeIdx].center_of_mass_x = particles[pIdx].pos_x;
         arena[nodeIdx].center_of_mass_y = particles[pIdx].pos_y;
     }
-        else 
+        else
     {
         arena[nodeIdx].mass = 0.0;
         arena[nodeIdx].center_of_mass_x = 0.0;
@@ -199,6 +198,7 @@ fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>
     }
 }
 
+#[allow(dead_code)]
 fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
     println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
 
@@ -242,7 +242,7 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
     }
 
     let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
-    
+
     local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut p95_error = 0.0;
     if !local_relative_errors.is_empty() {
@@ -259,7 +259,7 @@ fn mainMain()
 {
     let mut particles = Vec::new();
     let mut arena = Vec::new();
-    
+
     let path = Path::new("start_1000k.txt");
     let file = match File::open(&path) {
         Ok(f) => f,
@@ -268,15 +268,15 @@ fn mainMain()
             std::process::exit(1);
         }
     };
-    
+
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
         let line = line.expect("Blad odczytu linii z pliku");
-        
+
         // Rozdzielamy linię po spacjach
         let parts: Vec<&str> = line.split_whitespace().collect();
-        
+
         if parts.len() == 5 {
             particles.push(Particle {
                 pos_x: parts[0].parse().unwrap(),
@@ -295,10 +295,10 @@ fn mainMain()
     let mut total_cycles_force: u64 = 0;
     let mut total_cycles_tree: u64 = 0;
 
-    for j in 0..FRAMES {
-        
+    for _j in 0..FRAMES {
+
         let mut start_time = Instant::now();
-        let mut start_cycles = unsafe { _rdtsc() }; 
+        let mut start_cycles = unsafe { _rdtsc() };
 
         let mut minX = particles[0].pos_x;
         let mut maxX = particles[0].pos_x;
@@ -399,7 +399,7 @@ fn mainMain()
     //             if idx >= NUM_PARTICLES {
     //                 break;
     //             }
-                
+
     //             let line = match line {
     //                 Ok(l) => l,
     //                 Err(_) => break,
@@ -440,7 +440,7 @@ fn mainMain()
 }
 
 fn main() {
-    for i in 0..3 {
+    for _i in 0..3 {
         mainMain();
     }
 }

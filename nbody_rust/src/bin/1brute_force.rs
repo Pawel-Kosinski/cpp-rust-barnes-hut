@@ -7,7 +7,7 @@ use std::path::Path;
 
 const NUM_PARTICLES: usize = 50000;
 const FRAMES: usize = 100;
-const TIME_STEP: f32 = 0.016; 
+const TIME_STEP: f32 = 0.016;
 const G : f32 = 1.0;
 
 struct Particle {
@@ -28,7 +28,7 @@ pub struct PhysicsMetrics {
     pub center_y: f64,
 }
 
-pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
+fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     let mut m = PhysicsMetrics {
         total_momentum_x: 0.0,
         total_momentum_y: 0.0,
@@ -63,7 +63,7 @@ pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
 
 fn main() {
     let mut particles = Vec::new();
-    
+
     let path = Path::new("start_50k.txt");
     let file = match File::open(&path) {
         Ok(f) => f,
@@ -72,15 +72,15 @@ fn main() {
             std::process::exit(1);
         }
     };
-    
+
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
         let line = line.expect("Blad odczytu linii z pliku");
-        
+
         // Rozdzielamy linię po spacjach
         let parts: Vec<&str> = line.split_whitespace().collect();
-        
+
         if parts.len() == 5 {
             particles.push(Particle {
                 pos_x: parts[0].parse().unwrap(),
@@ -94,14 +94,14 @@ fn main() {
         }
     }
     //assert!(particles.len() >= NUM_PARTICLES);
-    
+
     let mut total_force_time_ms = 0.0;
     let mut total_cycles_force: u64 = 0;
 
     for j in 0..FRAMES {
-        
+
         let start_time = Instant::now();
-        let start_cycles = unsafe { _rdtsc() }; 
+        let start_cycles = unsafe { _rdtsc() };
 
         for i in 0..NUM_PARTICLES {
             let mut acc_x: f32 = 0.0;
@@ -116,11 +116,11 @@ fn main() {
                 let particle_b = &particles[j];
                 let dx = particle_b.pos_x - particle_a_pos_x;
                 let dy = particle_b.pos_y - particle_a_pos_y;
-                let dist_sq = dx * dx + dy * dy; 
+                let dist_sq = dx * dx + dy * dy;
 
                 let distance = dist_sq.sqrt();
-                
-                let acc = G * particle_b.mass / (dist_sq + 1.0); 
+
+                let acc = G * particle_b.mass / (dist_sq + 1.0);
 
                 acc_x += acc * (dx / distance);
                 acc_y += acc * (dy / distance);
@@ -133,9 +133,9 @@ fn main() {
         let end_time = start_time.elapsed();
 
         if j == 0 {
-            let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
-            let totalAppMemMB = (particlesMem) as f64 / (1024.0 * 1024.0);
-            println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+            let particles_mem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+            let total_app_mem_mb = (particles_mem) as f64 / (1024.0 * 1024.0);
+            println!("Zuzycie pamieci algorytmu: {} MB", total_app_mem_mb);
             println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
         }
 
@@ -145,7 +145,7 @@ fn main() {
             particles[i].velocity_y += particles[i].acc_y * TIME_STEP;
             particles[i].pos_x += particles[i].velocity_x * TIME_STEP;
             particles[i].pos_y += particles[i].velocity_y * TIME_STEP;
-            
+
             particles[i].acc_x = 0.0;
             particles[i].acc_y = 0.0;
         }
@@ -161,12 +161,12 @@ fn main() {
         }
     }
 
-    let outFile = std::fs::File::create("wzorzec_50k.txt").unwrap();
-    let mut writer = std::io::BufWriter::new(outFile);
+    let out_file = std::fs::File::create("wzorzec_50k.txt").unwrap();
+    let mut writer = std::io::BufWriter::new(out_file);
     for p in &particles {
         writeln!(writer, "{:.6} {:.6}", p.pos_x, p.pos_y).unwrap();
     }
-    
+
     println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
     println!("Cykle liczenia sil: {} cykli / klatke", total_cycles_force / (FRAMES as u64));
     println!("Calkowity czas symulacji: {:.4} ms", total_force_time_ms);
