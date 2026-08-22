@@ -1,16 +1,21 @@
-# Ignore everything by default
-*
-!*/
+# Build outputs
+*.exe
+*.obj
+*.o
+*.dll
+*.lib
+*.a
+*.pdb
 
-# Track source files
-!*.cpp
-!*.hpp
-!*.rs
-!*.md
-!*.xlsx
-# Track Cargo files
-!Cargo.toml
-!Cargo.lock
+# Rust
+nbody_rust/target/
 
-# Track git configuration
-!.gitignore
+# CMake
+build/
+cmake-build-*/
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

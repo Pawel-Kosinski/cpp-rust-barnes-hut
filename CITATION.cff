@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+title: "BHBench-CR: A C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants"
+message: "If you use this software, please cite the associated SoftwareX article and this repository."
+type: software
+authors:
+  - family-names: "Kosiński"
+    given-names: "Paweł"
+  - family-names: "Krużel"
+    given-names: "Filip"
+repository-code: "https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut"
+license: MIT
+version: "1.0.0"
+date-released: 2026-08-22
