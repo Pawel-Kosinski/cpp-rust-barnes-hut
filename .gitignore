@@ -19,3 +19,9 @@ cmake-build-*/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Generated benchmark input/reference files
+start_*.txt
+reference_*.txt
+wzorzec_*.txt
+sample_start_*.txt

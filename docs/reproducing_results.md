@@ -34,3 +34,17 @@ From the repository root, run:
 ## Notes
 
 The large-scale benchmark data reported in the article were collected on the workstation described in the manuscript. The source code, result workbook, and solver variants are provided to support reproducibility and further comparative experiments.
+
+## Input-data generation
+
+The C++ generator can create deterministic Plummer-distribution input files. The default seed is 1337.
+
+Example:
+
+    ./scripts/generate_input.sh 50000 start_50k.txt 1337
+
+Equivalent direct command after building the C++ targets:
+
+    ./build/bh_generator 50000 start_50k.txt 1337
+
+Large benchmark runs require input files matching the hard-coded benchmark configurations used by the solver variants, for example `start_50k.txt`, `start_1000k.txt`, `start_2000k.txt`, and `start_5000k.txt`.
