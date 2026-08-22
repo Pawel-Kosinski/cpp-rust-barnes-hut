@@ -37,6 +37,10 @@ The solver variants are described in:
 
     docs/variants.md
 
+The intended SoftwareX scope and limitations are described in:
+
+    docs/softwarex_scope.md
+
 ## Benchmark data
 
 The benchmark data used to generate the manuscript figures and tables are provided in:
@@ -77,20 +81,20 @@ The Rust variants are located in:
 
 The current binaries are:
 
-    1brute_force.rs
-    2.rs
-    3.rs
-    4.rs
-    5.rs
+    bh_v1_direct.rs
+    bh_v2_pointer_tree.rs
+    bh_v3_vector_tree.rs
+    bh_v4_threaded_tree.rs
+    bh_v5_parallel_force.rs
 
 They can be run with commands such as:
 
     cd nbody_rust
-    cargo run --release --bin 1brute_force
-    cargo run --release --bin 2
-    cargo run --release --bin 3
-    cargo run --release --bin 4
-    cargo run --release --bin 5
+    cargo run --release --bin bh_v1_direct
+    cargo run --release --bin bh_v2_pointer_tree
+    cargo run --release --bin bh_v3_vector_tree
+    cargo run --release --bin bh_v4_threaded_tree
+    cargo run --release --bin bh_v5_parallel_force
 
 ## Reproducing results
 
