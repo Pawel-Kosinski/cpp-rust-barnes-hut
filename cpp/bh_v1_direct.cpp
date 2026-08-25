@@ -4,11 +4,10 @@
 #include <fstream>
 #include <cmath>
 #include <iomanip>
+#include "benchmark_options.hpp"
 
 constexpr float G = 1; // Gravitational constant
 constexpr float TIME_STEP = 0.016f; // Time step for the simulation
-constexpr float FRAMES = 300;
-constexpr int NUM_PARTICLES = 50000;
 
 struct Particle
 {
@@ -55,19 +54,19 @@ PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particle
     return m;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    srand(42);
+    BenchmarkOptions options;
+    if (!parseBenchmarkOptions(argc, argv, options)) return argc > 1 ? 1 : 0;
+
     Timer timer;
     float time = 0.0f;
     std::vector<Particle> particles;
-    unsigned long long totalCycles = 0;
-    //particles.reserve(NUM_PARTICLES);
 
-    std::ifstream inFile("start_50k.txt");
+    std::ifstream inFile(options.input);
     if (!inFile)
     {
-        std::cerr << "Error: Could not open file start_100k.txt!\n";
+        std::cerr << "Error: Could not open file " << options.input << "!\n";
         return 1;
     }
 
@@ -80,7 +79,9 @@ int main()
         particles.push_back(p);
     }
     inFile.close();
-    for (int frame = 0; frame < FRAMES; ++frame)
+    if (!validateParticleCount(options, particles.size())) return 1;
+
+    for (int frame = 0; frame < options.frames; ++frame)
     {
         if (frame == 0) {
             size_t particlesMem = particles.capacity() * sizeof(Particle);
@@ -90,11 +91,11 @@ int main()
             std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
         }
         timer.start();
-        for (int i = 0; i < NUM_PARTICLES; ++i)
+        for (std::size_t i = 0; i < particles.size(); ++i)
         {
             float accX = 0.0f;
             float accY = 0.0f;
-            for (int j = 0; j < NUM_PARTICLES; ++j)
+            for (std::size_t j = 0; j < particles.size(); ++j)
             {
                 if (i == j)
                 {
@@ -123,7 +124,6 @@ int main()
             particles[i].accY += accY;
         }
         time += timer.stopTime();
-        totalCycles += timer.stopCycles();
         for (auto& particle : particles)
         {
             particle.velocityX += particle.accX * TIME_STEP;
@@ -133,7 +133,7 @@ int main()
             particle.accX = 0.0f;
             particle.accY = 0.0f;
         }
-        if (frame == 0 or frame == FRAMES - 1) {
+        if (frame == 0 or frame == options.frames - 1) {
             auto metrics = calculatePhysicsDiagnostics(particles);
             std::cout << "Frame " << frame << ":\n";
             std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
@@ -141,17 +141,16 @@ int main()
             std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         }
     }
-    std::cout << "Force calculation time:  " << (time / FRAMES) << " ms / frame\n";
+    std::cout << "Force calculation time:  " << (time / options.frames) << " ms / frame\n";
     std::cout << "Total simulation time: " << (time) << " ms\n";
-    std::cout << "Force calculation cycles:  " << std::fixed << (totalCycles / FRAMES) << " cycles / frame\n";
 
-    std::ofstream outFile("reference_50k.txt");
+    std::ofstream outFile("reference.txt");
     outFile << std::fixed << std::setprecision(6);
     for (const auto& p : particles)
     {
         outFile << p.posX << " " << p.posY << "\n";
     }
     outFile.close();
-    std::cout << "Saved reference positions to file reference_50k.txt\n";
+    std::cout << "Saved reference positions to file reference.txt\n";
     return 0;
 }

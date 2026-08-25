@@ -1,17 +1,19 @@
 #![allow(non_snake_case)]
 
 use std::time::Instant;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::_rdtsc;
+use std::sync::OnceLock;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const NUM_PARTICLES: usize = 1000000;
-const FRAMES: usize = 50;
 const TIME_STEP: f32 = 0.016;
-const THETA: f32 = 0.3;
 const G : f32 = 1.0;
+static THETA: OnceLock<f32> = OnceLock::new();
+
+#[path = "../benchmark_options.rs"]
+mod benchmark_options;
+
+fn theta() -> f32 { *THETA.get().expect("benchmark options were not initialized") }
 
 struct Particle {
     velocity_x: f32,
@@ -150,7 +152,7 @@ fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>
 
     let r_sq = 2.0 * node.half_size * node.half_size;
 
-    if r_sq < THETA * THETA * dist_sq || node.children[0].is_none()
+    if r_sq < theta() * theta() * dist_sq || node.children[0].is_none()
     {
         let dist = dist_sq.sqrt();
         let acc = G * node.mass / (dist_sq + 1.0);
@@ -279,15 +281,15 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
     println!("--------------------------------------------------");
 }
 
-fn mainMain()
+fn mainMain(options: &benchmark_options::BenchmarkOptions)
 {
     let mut particles = Vec::new();
 
-    let path = Path::new("start_1000k.txt");
+    let path = Path::new(&options.input);
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Error: Could not open file start_10k.txt. Did you generate the file?");
+            eprintln!("Error: Could not open input file {}.", options.input);
             std::process::exit(1);
         }
     };
@@ -315,13 +317,14 @@ fn mainMain()
 
     let mut total_force_time_ms = 0.0;
     let mut total_tree_time_ms = 0.0;
-    let mut total_cycles_force: u64 = 0;
-    let mut total_cycles_tree: u64 = 0;
+    if let Err(message) = benchmark_options::validate_particle_count(options, particles.len()) {
+        eprintln!("{message}");
+        return;
+    }
 
-    for _i in 0..FRAMES {
+    for _i in 0..options.frames {
 
         let mut start_time = Instant::now();
-        let mut start_cycles = unsafe { _rdtsc() };
 
         let mut minX = particles[0].pos_x;
         let mut maxX = particles[0].pos_x;
@@ -347,7 +350,7 @@ fn mainMain()
         root.bounds_y = centerY;
         root.half_size = maxHalfSize;
 
-        for j in 0..NUM_PARTICLES
+        for j in 0..particles.len()
         {
             insertParticlePtr(&mut root, j, &mut particles);
         }
@@ -365,11 +368,9 @@ fn mainMain()
 
         computeMassDistributionPtr(&mut root, &particles);
         total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_tree += unsafe { _rdtsc() } - start_cycles;
 
         start_time = Instant::now();
-        start_cycles = unsafe { _rdtsc() };
-        for k in 0..NUM_PARTICLES
+        for k in 0..particles.len()
         {
             calculateForcesPtr(k, &root, &mut particles);
         }
@@ -389,7 +390,6 @@ fn mainMain()
             p.acc_y = 0.0;
         }
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
 
         // if i == 0 || i == FRAMES - 1 {
@@ -401,11 +401,9 @@ fn mainMain()
         // }
 }
 
-    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (FRAMES as f64));
-    println!("Force calculation cycles: {} cycles / frame", total_cycles_force / (FRAMES as u64));
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
     println!("Total simulation time: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
-    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (FRAMES as f64));
-    println!("Tree construction cycles: {} cycles / frame", total_cycles_tree / (FRAMES as u64));
+    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));
 
     // let ref_path = Path::new("reference_1000k.txt");
     // match File::open(&ref_path) {
@@ -462,7 +460,10 @@ fn mainMain()
 
 fn main()
 {
-    for _ in 0..3 {
-        mainMain();
-    }
+    let options = match benchmark_options::parse_options() {
+        Ok(options) => options,
+        Err(message) => { eprintln!("{message}"); std::process::exit(1); }
+    };
+    THETA.set(options.theta).expect("benchmark options initialized once");
+    mainMain(&options);
 }

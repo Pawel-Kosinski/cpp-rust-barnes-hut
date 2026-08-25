@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
 
 PARTICLES="${1:-50000}"
-OUTPUT="${2:-start_50k.txt}"
+OUTPUT="${2:-data/start_${PARTICLES}.txt}"
 SEED="${3:-1337}"
+build_dir="${BUILD_DIR:-build}"
 
-if [ ! -x "./build/bh_generator.exe" ] && [ ! -x "./build/bh_generator" ]; then
+if [ ! -x "$build_dir/bh_generator.exe" ] && [ ! -x "$build_dir/bh_generator" ]; then
     echo "Generator binary not found. Building C++ targets first..."
-    ./scripts/build_cpp.sh
+    bash scripts/build_cpp.sh
 fi
 
-if [ -x "./build/bh_generator.exe" ]; then
-    ./build/bh_generator.exe "$PARTICLES" "$OUTPUT" "$SEED"
+if [ -x "$build_dir/bh_generator.exe" ]; then
+    "$build_dir/bh_generator.exe" "$PARTICLES" "$OUTPUT" "$SEED"
 else
-    ./build/bh_generator "$PARTICLES" "$OUTPUT" "$SEED"
+    "$build_dir/bh_generator" "$PARTICLES" "$OUTPUT" "$SEED"
 fi

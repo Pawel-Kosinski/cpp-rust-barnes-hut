@@ -1,19 +1,20 @@
 #![allow(non_snake_case)]
 
 use std::time::Instant;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::_rdtsc;
+use std::sync::OnceLock;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use rayon::{ThreadPoolBuilder, prelude::*};
 
-const NUM_PARTICLES: usize = 1000000;
-const FRAMES: usize = 50;
 const TIME_STEP: f32 = 0.016;
-const THETA: f32 = 0.3;
 const G : f32 = 1.0;
-const FILEPATH: &str = "start_1000k.txt";
+static THETA: OnceLock<f32> = OnceLock::new();
+
+#[path = "../benchmark_options.rs"]
+mod benchmark_options;
+
+fn theta() -> f32 { *THETA.get().expect("benchmark options were not initialized") }
 
 #[derive(Clone)]
 struct Particle {
@@ -190,7 +191,7 @@ fn calculateForces(pIdx: usize, startNodeIdx: usize, arena: &[Node], particles: 
         }
 
         let r_sq = 2.0 * node.half_size * node.half_size;
-        if r_sq < THETA * THETA * dist_sq || node.children[0] == usize::MAX
+        if r_sq < theta() * theta() * dist_sq || node.children[0] == usize::MAX
         {
             let dist = dist_sq.sqrt();
             let acc = G * node.mass / (dist_sq + 1.0);
@@ -317,17 +318,17 @@ fn validateForceAccuracyParallel(current_frame: usize, bh_particles: &[Particle]
     println!("--------------------------------------------------");
 }
 
-fn mainMain()
+fn mainMain(options: &benchmark_options::BenchmarkOptions)
 {
     let mut particles = Vec::new();
     //let mut arena: Vec<Node> = Vec::with_capacity(3 * NUM_PARTICLES);
     let mut arena: Vec<Node> = Vec::new();
 
-    let path = Path::new(FILEPATH);
+    let path = Path::new(&options.input);
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Error: Could not open file {}.", FILEPATH);
+            eprintln!("Error: Could not open input file {}.", options.input);
             std::process::exit(1);
         }
     };
@@ -352,13 +353,16 @@ fn mainMain()
 
     let mut total_force_time_ms = 0.0;
     let mut total_tree_time_ms = 0.0;
-    let mut total_cycles_force: u64 = 0;
-    let mut total_cycles_tree: u64 = 0;
+    // Reuse the output buffer so allocation is not charged to each force phase.
+    let mut forces = vec![(0.0f32, 0.0f32); particles.len()];
+    if let Err(message) = benchmark_options::validate_particle_count(options, particles.len()) {
+        eprintln!("{message}");
+        return;
+    }
 
-    for _j in 0..FRAMES {
+    for _j in 0..options.frames {
 
         let mut start_time = Instant::now();
-        let mut start_cycles = unsafe { _rdtsc() };
 
         let mut minX = particles[0].pos_x;
         let mut maxX = particles[0].pos_x;
@@ -386,7 +390,7 @@ fn mainMain()
         arena.clear();
         arena.push(root);
 
-        for i in 0..NUM_PARTICLES
+        for i in 0..particles.len()
         {
             insertParticle(0, i, &mut arena, &mut particles);
         }
@@ -404,7 +408,6 @@ fn mainMain()
         threadTree(0, usize::MAX, &mut arena);
 
         total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_tree += unsafe { _rdtsc() } - start_cycles;
 
         //  if j == 0 {
         //     println!("Tree construction time frame 0: {:.4} ms", total_tree_time_ms);
@@ -412,15 +415,14 @@ fn mainMain()
         // }
 
         start_time = Instant::now();
-        start_cycles = unsafe { _rdtsc() };
 
         // The `par_iter_mut()` iterator splits the particle vector across CPU cores
         //particles.par_iter_mut().enumerate().for_each(|(i, p)| {});
 
         //Compute forces in parallel and collect them into a new vector
-        let forces: Vec<(f32, f32)> = (0..NUM_PARTICLES).into_par_iter().map(|i| {
-             calculateForces(i, 0, &arena, &particles)
-        }).collect();
+        forces.par_iter_mut().enumerate().for_each(|(i, force)| {
+            *force = calculateForces(i, 0, &arena, &particles);
+        });
 
         // if j == FRAMES - 1 || j == 0 || j == 150{
         //     validateForceAccuracyParallel(j, &particles, &forces);
@@ -437,7 +439,6 @@ fn mainMain()
         });
 
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
         // if j % 25 == 0 || j == FRAMES - 1 {
         //     let metrics = calculate_physics_diagnostics(&particles);
@@ -448,11 +449,9 @@ fn mainMain()
         // }
     }
 
-    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (FRAMES as f64));
-    println!("Force calculation cycles: {} cycles / frame", total_cycles_force / (FRAMES as u64));
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
     println!("Total simulation time: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
-    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (FRAMES as f64));
-    println!("Tree construction cycles: {} cycles / frame", total_cycles_tree / (FRAMES as u64));
+    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));
 
     // let ref_path = Path::new("reference_1000k.txt");
     // match File::open(&ref_path) {
@@ -492,8 +491,13 @@ fn mainMain()
 }
 
 fn main() {
-    ThreadPoolBuilder::new().num_threads(12).build_global().unwrap();
-    for _i in 0..3 {
-        mainMain();
-    }
+    let options = match benchmark_options::parse_options() {
+        Ok(options) => options,
+        Err(message) => { eprintln!("{message}"); std::process::exit(1); }
+    };
+    THETA.set(options.theta).expect("benchmark options initialized once");
+    let mut pool = ThreadPoolBuilder::new();
+    if options.threads > 0 { pool = pool.num_threads(options.threads); }
+    pool.build_global().expect("Rayon thread pool initialized once");
+    mainMain(&options);
 }

@@ -10,7 +10,7 @@ The repository contains both C++ and Rust implementations of the same two-dimens
 
 From the repository root, run:
 
-    cmake -S . -B build
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
     cmake --build build --config Release
 
 ## Manual C++ build with Clang
@@ -41,10 +41,18 @@ The C++ generator can create deterministic Plummer-distribution input files. The
 
 Example:
 
-    ./scripts/generate_input.sh 50000 start_50k.txt 1337
+    bash scripts/generate_input.sh 1000 data/start_1000.txt 1337
 
 Equivalent direct command after building the C++ targets:
 
-    ./build/bh_generator 50000 start_50k.txt 1337
+    ./build/bh_generator 1000 data/start_1000.txt 1337
 
-Large benchmark runs require input files matching the hard-coded benchmark configurations used by the solver variants, for example `start_50k.txt`, `start_1000k.txt`, `start_2000k.txt`, and `start_5000k.txt`.
+All variants consume the same explicit input and frame count. Run:
+
+    bash scripts/run_benchmarks.sh --input data/start_1000.txt --particles 1000 --frames 5 --repeats 10 --theta 0.3
+
+The command writes `raw_runs.csv`, `summary.csv`, per-run logs, and
+`environment.json` below `results/generated/`. The summary reports the mean and
+sample standard deviation across process runs. Generate figures with
+`python scripts/plot_results.py results/generated/summary.csv results/generated`
+(requires `matplotlib`).

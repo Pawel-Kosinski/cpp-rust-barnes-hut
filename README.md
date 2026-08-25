@@ -25,8 +25,8 @@ The software is not intended to be a production astrophysical simulator or a sta
     cpp/                  C++ implementations and generator
     nbody_rust/           Rust implementations
     docs/                 Documentation of variants and reproduction notes
-    scripts/              Build helper scripts
-    results/              Benchmark result workbook
+    scripts/              Build, benchmark, and plotting scripts
+    results/              Archived workbook and generated raw results
     CMakeLists.txt        CMake build configuration for C++
     CITATION.cff          Citation metadata
     LICENSE               MIT license
@@ -65,12 +65,12 @@ The current C++ implementation files are:
 
 The recommended C++ build uses CMake:
 
-    cmake -S . -B build
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
     cmake --build build --config Release
 
 Alternatively, use the helper script:
 
-    ./scripts/build_cpp.sh
+    bash scripts/build_cpp.sh
 
 Manual Clang build commands are provided in:
 
@@ -85,7 +85,7 @@ From the repository root:
 
 Alternatively, use the helper script:
 
-    ./scripts/build_rust.sh
+    bash scripts/build_rust.sh
 
 ## Rust binaries
 
@@ -101,26 +101,27 @@ The current binaries are:
     bh_v4_threaded_tree.rs
     bh_v5_parallel_force.rs
 
-They can be run with commands such as:
+Every solver accepts the same `--input`, `--particles`, and `--frames` options.
+V5 also accepts `--threads N`.
 
     cd nbody_rust
-    cargo run --release --bin bh_v1_direct
-    cargo run --release --bin bh_v2_pointer_tree
-    cargo run --release --bin bh_v3_vector_tree
-    cargo run --release --bin bh_v4_threaded_tree
-    cargo run --release --bin bh_v5_parallel_force
+    cargo run --release --bin bh_v1_direct -- --input ../data/start_1000.txt --particles 1000 --frames 5
 
 ## Reproducing results
 
-See:
+Generate a deterministic input and run the complete 10-repeat benchmark:
 
-    docs/reproducing_results.md
+    bash scripts/generate_input.sh 1000 data/start_1000.txt 1337
+    bash scripts/run_benchmarks.sh --input data/start_1000.txt --particles 1000 --frames 5 --repeats 10
+    python scripts/plot_results.py results/generated/summary.csv results/generated
 
 The benchmark protocol is summarized in:
 
     docs/benchmark_protocol.md
 
-The large-scale benchmark data were collected on the workstation described in the associated manuscript. The repository provides source code and result data to support reproducibility and further comparative experiments.
+The runner writes raw measurements, summary statistics, logs, and environment
+metadata to `results/generated/`. Historical workbook values are retained as an
+archive and should not be treated as a replacement for raw run data.
 
 ## Software metadata
 

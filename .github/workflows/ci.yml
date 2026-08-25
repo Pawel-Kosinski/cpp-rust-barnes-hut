@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [softwarex]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build C++
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release
+      - name: Build Rust
+        working-directory: nbody_rust
+        run: cargo build --release --bins

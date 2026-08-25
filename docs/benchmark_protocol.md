@@ -47,7 +47,9 @@ The benchmark separates the main runtime components:
 - force-evaluation time,
 - total execution time where applicable.
 
-The implementations also include cycle-count measurements for selected experiments.
+Timing uses wall-clock milliseconds. Processor timestamp-counter values are not
+reported because they are not synchronised CPU-cycle measurements across cores
+or platforms.
 
 ## Memory measurements
 
@@ -67,7 +69,10 @@ The result workbook used for the manuscript is stored in:
 
     results/Results_data.xlsx
 
-The workbook contains the benchmark measurements used to prepare the article tables and figures.
+`Results_data.xlsx` is an archived historical workbook. Reproducible runs are
+written as raw CSV, summary CSV, logs, and environment metadata by
+`scripts/run_benchmarks.sh`. Summary values are means and sample standard
+deviations across ten independent process runs by default.
 
 ## Reproducibility notes
 

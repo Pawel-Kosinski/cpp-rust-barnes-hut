@@ -1,14 +1,13 @@
 use std::time::Instant;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::_rdtsc;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
-const NUM_PARTICLES: usize = 50000;
-const FRAMES: usize = 100;
 const TIME_STEP: f32 = 0.016;
 const G : f32 = 1.0;
+
+#[path = "../benchmark_options.rs"]
+mod benchmark_options;
 
 struct Particle {
     velocity_x: f32,
@@ -62,13 +61,17 @@ fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
 }
 
 fn main() {
+    let options = match benchmark_options::parse_options() {
+        Ok(options) => options,
+        Err(message) => { eprintln!("{message}"); std::process::exit(1); }
+    };
     let mut particles = Vec::new();
 
-    let path = Path::new("start_50k.txt");
+    let path = Path::new(&options.input);
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Error: Could not open file start_1k.txt. Did you generate the file?");
+            eprintln!("Error: Could not open input file {}.", options.input);
             std::process::exit(1);
         }
     };
@@ -93,23 +96,24 @@ fn main() {
             });
         }
     }
-    //assert!(particles.len() >= NUM_PARTICLES);
+    if let Err(message) = benchmark_options::validate_particle_count(&options, particles.len()) {
+        eprintln!("{message}");
+        std::process::exit(1);
+    }
 
     let mut total_force_time_ms = 0.0;
-    let mut total_cycles_force: u64 = 0;
 
-    for j in 0..FRAMES {
+    for j in 0..options.frames {
 
         let start_time = Instant::now();
-        let start_cycles = unsafe { _rdtsc() };
 
-        for i in 0..NUM_PARTICLES {
+        for i in 0..particles.len() {
             let mut acc_x: f32 = 0.0;
             let mut acc_y: f32 = 0.0;
             let particle_a_pos_x = particles[i].pos_x;
             let particle_a_pos_y = particles[i].pos_y;
 
-            for j in 0..NUM_PARTICLES {
+            for j in 0..particles.len() {
                 if i == j {
                     continue;
                 }
@@ -129,7 +133,6 @@ fn main() {
             particles[i].acc_y = acc_y;
         }
 
-        let end_cycles = unsafe { _rdtsc() };
         let end_time = start_time.elapsed();
 
         if j == 0 {
@@ -140,7 +143,7 @@ fn main() {
         }
 
         // Euler integration (position update)
-        for i in 0..NUM_PARTICLES {
+        for i in 0..particles.len() {
             particles[i].velocity_x += particles[i].acc_x * TIME_STEP;
             particles[i].velocity_y += particles[i].acc_y * TIME_STEP;
             particles[i].pos_x += particles[i].velocity_x * TIME_STEP;
@@ -150,9 +153,8 @@ fn main() {
             particles[i].acc_y = 0.0;
         }
         total_force_time_ms += end_time.as_secs_f64() * 1000.0;
-        total_cycles_force += end_cycles - start_cycles;
 
-        if j == 0 || j == FRAMES - 1 {
+        if j == 0 || j == options.frames - 1 {
             let metrics = calculate_physics_diagnostics(&particles);
             println!("Frame {}:", j);
             println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
@@ -167,7 +169,6 @@ fn main() {
         writeln!(writer, "{:.6} {:.6}", p.pos_x, p.pos_y).unwrap();
     }
 
-    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (FRAMES as f64));
-    println!("Force calculation cycles: {} cycles / frame", total_cycles_force / (FRAMES as u64));
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
     println!("Total simulation time: {:.4} ms", total_force_time_ms);
 }

@@ -6,12 +6,11 @@
 #include <fstream> 
 #include <cmath>
 #include <iomanip>
+#include "benchmark_options.hpp"
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
-constexpr float THETA = 0.3f;
-constexpr float FRAMES = 10;
-constexpr int NUM_PARTICLES = 5000000;
+float THETA = 0.3f;
 
 struct Particle
 {
@@ -191,7 +190,7 @@ void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& part
     }
 }
 
-int mainMain()
+int mainMain(const BenchmarkOptions& options)
 {
     srand(42);
     std::vector<Particle> particles;
@@ -199,13 +198,11 @@ int mainMain()
     Timer timer;
     float totalTreeBuildTime = 0.0f;
     float totalForceTime = 0.0f;
-    unsigned long long totalCyclesTree = 0;
-    unsigned long long totalCyclesForce = 0;
 
-    std::ifstream inFile("start_5000k.txt");
+    std::ifstream inFile(options.input);
     if (!inFile)
     {
-        std::cerr << "Error: Could not open file start_5000k.txt!\n";
+        std::cerr << "Error: Could not open file " << options.input << "!\n";
         return 1;
     }
 
@@ -218,10 +215,11 @@ int mainMain()
         particles.push_back(p);
     }
     inFile.close();
+    if (!validateParticleCount(options, particles.size())) return 1;
 
     //treeArena.reserve(particles.size() * 10);
 
-    for (int frame = 0; frame < FRAMES; ++frame)
+    for (int frame = 0; frame < options.frames; ++frame)
     {
         timer.start(); 
         float minX = particles[0].posX, maxX = particles[0].posX;
@@ -269,7 +267,6 @@ int mainMain()
 
         computeMassDistribution(0, treeArena, particles);
         totalTreeBuildTime += timer.stopTime();
-        totalCyclesTree += timer.stopCycles();
 
         timer.start();
         for (int i = 0; i < particles.size(); ++i)
@@ -288,7 +285,6 @@ int mainMain()
             particle.accY = 0.0f;
         }
         totalForceTime += timer.stopTime();
-        totalCyclesForce += timer.stopCycles();
         // if (frame == 0 or frame == FRAMES - 1) {
         //     auto metrics = calculatePhysicsDiagnostics(particles);
         //     std::cout << "Frame " << frame << ":\n";
@@ -297,11 +293,9 @@ int mainMain()
         //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         // }
     }
-    std::cout << "Tree construction time: " << (totalTreeBuildTime / FRAMES) << " ms / frame\n";
-    std::cout << "Force calculation time:  " << (totalForceTime / FRAMES) << " ms / frame\n";
+    std::cout << "Tree construction time: " << (totalTreeBuildTime / options.frames) << " ms / frame\n";
+    std::cout << "Force calculation time:  " << (totalForceTime / options.frames) << " ms / frame\n";
     std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
-    std::cout << "Tree construction cycles: " << std::fixed << (totalCyclesTree / FRAMES) << " cycles / frame\n";
-    std::cout << "Force calculation cycles:  " << std::fixed << (totalCyclesForce / FRAMES) << " cycles / frame\n";
     // std::ifstream outFile("reference_5000k.txt");
     // if (!outFile) 
     // {
@@ -334,10 +328,10 @@ int mainMain()
     return 0;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    for (int i = 0; i < 3; ++i) {
-        mainMain();
-    }
-    return 0;
+    BenchmarkOptions options;
+    if (!parseBenchmarkOptions(argc, argv, options)) return argc > 1 ? 1 : 0;
+    THETA = options.theta;
+    return mainMain(options);
 }

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-cd nbody_rust
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root/nbody_rust"
+
 cargo build --release --bins

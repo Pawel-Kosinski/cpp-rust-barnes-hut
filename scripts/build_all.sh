@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
 
 echo "Building C++ variants..."
-./scripts/build_cpp.sh
+bash scripts/build_cpp.sh
 
 echo "Building Rust variants..."
-./scripts/build_rust.sh
+bash scripts/build_rust.sh
 
 echo "All builds completed successfully."
