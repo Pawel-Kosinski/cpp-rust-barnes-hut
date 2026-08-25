@@ -1,18 +1,21 @@
 #![allow(non_snake_case)]
 
 use std::time::Instant;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::_rdtsc;
+use std::sync::OnceLock;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const NUM_PARTICLES: usize = 1000000;
-const FRAMES: usize = 50;
-const TIME_STEP: f32 = 0.016; 
-const THETA: f32 = 0.3;
+const TIME_STEP: f32 = 0.016;
 const G : f32 = 1.0;
+static THETA: OnceLock<f32> = OnceLock::new();
 
+#[path = "../benchmark_options.rs"]
+mod benchmark_options;
+
+fn theta() -> f32 { *THETA.get().expect("benchmark options were not initialized") }
+
+#[derive(Clone)]
 struct Particle {
     velocity_x: f32,
     velocity_y: f32,
@@ -23,7 +26,7 @@ struct Particle {
     mass: f32,
 }
 
-struct NodePtr {
+struct Node {
     bounds_x: f32,
     bounds_y: f32,
     half_size: f32,
@@ -31,12 +34,13 @@ struct NodePtr {
     center_of_mass_x: f32,
     center_of_mass_y: f32,
     particle_index: usize,
-    children: [Option<Box<NodePtr>>; 4],
+    children: [usize; 4],
+    next: usize,
 }
 
-impl Default for NodePtr {
+impl Default for Node {
     fn default() -> Self {
-        NodePtr {
+        Node {
             bounds_x: 0.0,
             bounds_y: 0.0,
             half_size: 0.0,
@@ -44,12 +48,13 @@ impl Default for NodePtr {
             center_of_mass_x: 0.0,
             center_of_mass_y: 0.0,
             particle_index: usize::MAX,
-            children: [None, None, None, None],
+            children: [usize::MAX, usize::MAX, usize::MAX, usize::MAX],
+            next: usize::MAX,
         }
     }
 }
 
-fn getQuadrant(node: &NodePtr, particle: &Particle) -> i32 
+fn getQuadrant(node: &Node, particle: &Particle) -> i32
 {
     let mut quadrant = 0;
     if particle.pos_x > node.bounds_x { quadrant += 1; }
@@ -57,171 +62,147 @@ fn getQuadrant(node: &NodePtr, particle: &Particle) -> i32
     quadrant
 }
 
-fn insertParticlePtr(node: &mut NodePtr, pIdx: usize, particles: &mut Vec<Particle>)
+fn threadTree(nodeIdx: usize, nextIdx: usize, arena: &mut Vec<Node>)
 {
-    if node.particle_index != usize::MAX
+    arena[nodeIdx].next = nextIdx;
+    if arena[nodeIdx].children[0] != usize::MAX
     {
-        let oldIdx: usize = node.particle_index;
+        for i in 0..3
+        {
+            threadTree(arena[nodeIdx].children[i], arena[nodeIdx].children[i + 1], arena);
+        }
+        threadTree(arena[nodeIdx].children[3], nextIdx, arena);
+    }
+}
+
+fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles: &mut Vec<Particle>)
+{
+    //let node = &mut arena[nodeIdx];
+    if arena[nodeIdx].particle_index != usize::MAX
+    {
+        let oldIdx: usize = arena[nodeIdx].particle_index;
         let mut shift = 0.0001;
-        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y 
+        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
         {
             particles[pIdx].pos_x += shift;
-            shift *= 2.0; // Zwiększamy przesunięcie dwukrotnie, aż 'f32' to zarejestruje
+            shift *= 2.0;
         }
     }
 
-    if node.children[0].is_some()
+    if arena[nodeIdx].particle_index == usize::MAX && arena[nodeIdx].children[0] == usize::MAX
     {
-        let quad = getQuadrant(node, &particles[pIdx]) as usize;
-        insertParticlePtr(node.children[quad].as_mut().unwrap(), pIdx, particles);
+        arena[nodeIdx].particle_index = pIdx;
         return;
     }
 
-    if node.particle_index == usize::MAX
+    if arena[nodeIdx].children[0] != usize::MAX
     {
-        node.particle_index = pIdx;
+        let quad = getQuadrant(&arena[nodeIdx], &particles[pIdx]) as usize;
+        insertParticle( arena[nodeIdx].children[quad], pIdx, arena, particles);
         return;
     }
 
-    let oldPIdx = node.particle_index;
-    node.particle_index = usize::MAX;
-    let half_size = node.half_size / 2.0;
+    let oldPIdx = arena[nodeIdx].particle_index;
+    arena[nodeIdx].particle_index = usize::MAX;
+    let half_size = arena[nodeIdx].half_size / 2.0;
     for i in 0..4
     {
-        let offset_x = ((i % 2) * 2) as f32 - 1.0; 
+        let offset_x = ((i % 2) * 2) as f32 - 1.0;
         let offset_y = ((i / 2) * 2) as f32 - 1.0;
+        arena[nodeIdx].children[i] = arena.len();
 
-        node.children[i] = Some(Box::new(NodePtr {
-            bounds_x: node.bounds_x + offset_x * half_size,
-            bounds_y: node.bounds_y + offset_y * half_size,
+        arena.push(Node {
+            bounds_x: arena[nodeIdx].bounds_x + offset_x * half_size,
+            bounds_y: arena[nodeIdx].bounds_y + offset_y * half_size,
             half_size,
             mass: 0.0,
             center_of_mass_x: 0.0,
             center_of_mass_y: 0.0,
             particle_index: usize::MAX,
-            children: [None, None, None, None],
-        }));
+            children: [usize::MAX, usize::MAX, usize::MAX, usize::MAX],
+            next: usize::MAX,
+        });
     }
-    insertParticlePtr(node, oldPIdx, particles);
-    insertParticlePtr(node, pIdx, particles);
+    insertParticle(nodeIdx, oldPIdx, arena, particles);
+    insertParticle(nodeIdx, pIdx, arena, particles);
 }
 
-fn computeMassDistributionPtr(node: &mut NodePtr, particles: &Vec<Particle>) 
+fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>)
 {
-    if node.children[0].is_some() 
+    //let node = &mut arena[nodeIdx];
+    if arena[nodeIdx].children[0] != usize::MAX
     {
-        node.mass = 0.0;
-        node.center_of_mass_x = 0.0;
-        node.center_of_mass_y = 0.0;
+        arena[nodeIdx].mass = 0.0;
+        arena[nodeIdx].center_of_mass_x = 0.0;
+        arena[nodeIdx].center_of_mass_y = 0.0;
 
         for i in 0..4
         {
-            computeMassDistributionPtr(node.children[i].as_mut().unwrap(), particles);
-            let child = node.children[i].as_ref().unwrap();
-            node.mass += child.mass;
-            node.center_of_mass_x += child.center_of_mass_x * child.mass;
-            node.center_of_mass_y += child.center_of_mass_y * child.mass;
+            let childIdx = arena[nodeIdx].children[i];
+            computeMassDistribution(childIdx, arena, particles);
+            //let child = &arena[childIdx];
+            arena[nodeIdx].mass += arena[childIdx].mass;
+            arena[nodeIdx].center_of_mass_x += arena[childIdx].center_of_mass_x * arena[childIdx].mass;
+            arena[nodeIdx].center_of_mass_y += arena[childIdx].center_of_mass_y * arena[childIdx].mass;
         }
-        if node.mass > 0.0 
+        if arena[nodeIdx].mass > 0.0
         {
-            node.center_of_mass_x /= node.mass;
-            node.center_of_mass_y /= node.mass;
+            arena[nodeIdx].center_of_mass_x /= arena[nodeIdx].mass;
+            arena[nodeIdx].center_of_mass_y /= arena[nodeIdx].mass;
         }
     }
-    else if node.particle_index != usize::MAX 
+    else if arena[nodeIdx].particle_index != usize::MAX
     {
-        let pIdx = node.particle_index;
-        node.mass = particles[pIdx].mass;
-        node.center_of_mass_x = particles[pIdx].pos_x;
-        node.center_of_mass_y = particles[pIdx].pos_y;
+        let pIdx = arena[nodeIdx].particle_index;
+        arena[nodeIdx].mass = particles[pIdx].mass;
+        arena[nodeIdx].center_of_mass_x = particles[pIdx].pos_x;
+        arena[nodeIdx].center_of_mass_y = particles[pIdx].pos_y;
     }
-    
+        else
+    {
+        arena[nodeIdx].mass = 0.0;
+        arena[nodeIdx].center_of_mass_x = 0.0;
+        arena[nodeIdx].center_of_mass_y = 0.0;
+    }
 }
 
-fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>)
+
+fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>)
 {
-    let p: &Particle = &particles[pIdx];
-    let dx = node.center_of_mass_x - p.pos_x;
-    let dy = node.center_of_mass_y - p.pos_y;
-    let dist_sq = dx * dx + dy * dy;
-    //let dist = dist_sq.sqrt();
 
-    if dist_sq < 1e-5 {return;}
-
-    let r_sq = 2.0 * node.half_size * node.half_size;
-
-    if r_sq < THETA * THETA * dist_sq || node.children[0].is_none()
+    let mut currNodeIdx: usize = 0;
+    while currNodeIdx != usize::MAX
     {
-        let dist = dist_sq.sqrt(); 
-        let acc = G * node.mass / (dist_sq + 1.0);
-        particles[pIdx].acc_x += acc * (dx / dist);
-        particles[pIdx].acc_y += acc * (dy / dist);
-    }
-    else
-    {
-        for i in 0..4
+        let node = &arena[currNodeIdx];
+        let dx = node.center_of_mass_x - particles[pIdx].pos_x;
+        let dy = node.center_of_mass_y - particles[pIdx].pos_y;
+        let dist_sq = dx * dx + dy * dy;
+        //let dist = dist_sq.sqrt();
+
+        if dist_sq < 1e-5 {
+            currNodeIdx = node.next;
+            continue;
+        }
+
+        let r_sq = 2.0 * node.half_size * node.half_size;
+        if r_sq < theta() * theta() * dist_sq || node.children[0] == usize::MAX
         {
-            calculateForcesPtr(pIdx, node.children[i].as_ref().unwrap(), particles);
+            let dist = dist_sq.sqrt();
+            let acc = G * node.mass / (dist_sq + 1.0);
+            particles[pIdx].acc_x += acc * (dx / dist);
+            particles[pIdx].acc_y += acc * (dy / dist);
+            currNodeIdx = node.next;
+        }
+        else
+        {
+            currNodeIdx = node.children[0];
         }
     }
 }
 
-fn countNodesPtr(node: &NodePtr) -> i32
-{
-    let mut count: i32 = 1; 
-    for i in 0..4
-    {
-        if node.children[i].is_some() 
-        {
-            count += countNodesPtr(node.children[i].as_ref().unwrap());
-        }
-    }
-    return count;
-}
- 
-pub struct PhysicsMetrics {
-    pub total_momentum_x: f64,
-    pub total_momentum_y: f64,
-    pub total_kinetic_energy: f64,
-    pub center_x: f64,
-    pub center_y: f64,
-}
-
-pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
-    let mut m = PhysicsMetrics {
-        total_momentum_x: 0.0,
-        total_momentum_y: 0.0,
-        total_kinetic_energy: 0.0,
-        center_x: 0.0,
-        center_y: 0.0,
-    };
-    let mut total_mass = 0.0;
-
-    for p in particles {
-        // Rzutowanie na f64 chroni przed utratą precyzji
-        let mass = p.mass as f64;
-        let vx = p.velocity_x as f64;
-        let vy = p.velocity_y as f64;
-        let px = p.pos_x as f64;
-        let py = p.pos_y as f64;
-
-        m.total_momentum_x += mass * vx;
-        m.total_momentum_y += mass * vy;
-        m.total_kinetic_energy += 0.5 * mass * (vx * vx + vy * vy);
-
-        m.center_x += mass * px;
-        m.center_y += mass * py;
-        total_mass += mass;
-    }
-
-    m.center_x /= total_mass;
-    m.center_y /= total_mass;
-
-    m
-}
-
+#[allow(dead_code)]
 fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
-    println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
+    println!("\n--- FORCE ACCURACY VALIDATION (Frame {}) ---", current_frame);
 
     let mut sum_diff_sq: f64 = 0.0;
     let mut sum_bf_sq: f64 = 0.0;
@@ -263,7 +244,7 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
     }
 
     let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
-    
+
     local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut p95_error = 0.0;
     if !local_relative_errors.is_empty() {
@@ -271,32 +252,33 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
         p95_error = local_relative_errors[p95_index];
     }
 
-    println!("Globalny blad sily (RMS): {:.4} %", rms_error * 100.0);
-    println!("Blad 95. percentyla:      {:.4} %", p95_error * 100.0);
+    println!("Global force error (RMS): {:.4} %", rms_error * 100.0);
+    println!("95th percentile error:      {:.4} %", p95_error * 100.0);
     println!("--------------------------------------------------");
 }
 
-fn mainMain()
+fn mainMain(options: &benchmark_options::BenchmarkOptions)
 {
     let mut particles = Vec::new();
-    
-    let path = Path::new("start_1000k.txt");
+    let mut arena = Vec::new();
+
+    let path = Path::new(&options.input);
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_10k.txt. Czy na pewno wygenerowales plik?");
+            eprintln!("Error: Could not open input file {}.", options.input);
             std::process::exit(1);
         }
     };
-    
+
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("Blad odczytu linii z pliku");
-        
-        // Rozdzielamy linię po spacjach
+        let line = line.expect("Error while reading a line from the file");
+
+        // Split the line by spaces
         let parts: Vec<&str> = line.split_whitespace().collect();
-        
+
         if parts.len() == 5 {
             particles.push(Particle {
                 pos_x: parts[0].parse().unwrap(),
@@ -312,13 +294,14 @@ fn mainMain()
 
     let mut total_force_time_ms = 0.0;
     let mut total_tree_time_ms = 0.0;
-    let mut total_cycles_force: u64 = 0;
-    let mut total_cycles_tree: u64 = 0;
+    if let Err(message) = benchmark_options::validate_particle_count(options, particles.len()) {
+        eprintln!("{message}");
+        return;
+    }
 
-    for i in 0..FRAMES {
-        
+    for _j in 0..options.frames {
+
         let mut start_time = Instant::now();
-        let mut start_cycles = unsafe { _rdtsc() }; 
 
         let mut minX = particles[0].pos_x;
         let mut maxX = particles[0].pos_x;
@@ -339,41 +322,41 @@ fn mainMain()
         let halfHeight = (maxY - minY) / 2.0;
         let maxHalfSize = f32::max(halfWidth, halfHeight) + 1.0;
 
-        let mut root: NodePtr = NodePtr::default();
+        let mut root: Node = Node::default();
         root.bounds_x = centerX;
         root.bounds_y = centerY;
         root.half_size = maxHalfSize;
+        arena.clear();
+        arena.push(root);
 
-        for j in 0..NUM_PARTICLES
+        for i in 0..particles.len()
         {
-            insertParticlePtr(&mut root, j, &mut particles);
+            insertParticle(0, i, &mut arena, &mut particles);
         }
-        // if i == 0 {
-        //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
-        //     let nodeCount = countNodesPtr(&root);
-        //     let treeMem = (nodeCount as usize) * std::mem::size_of::<NodePtr>();
-        //     let totalAppMemMB = (particlesMem + treeMem) as f64 / (1024.0 * 1024.0);
 
-        //     println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
-        //     println!("Stworzono {} wezlow drzewa", nodeCount);
+        // if j == 0 {
+        //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
+        //     let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
+        //     let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
+        //     println!("Algorithm memory usage: {} MB", totalAppMemMB);
+        //     println!("Created {} tree nodes", arena.len());
         //     println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
-        //     println!("Size of NodePtr (V2): {:.6} bytes", std::mem::size_of::<NodePtr>());
+        //     println!("Size of Node (V4/V5): {:.6} bytes", std::mem::size_of::<Node>());
         // }
 
-        computeMassDistributionPtr(&mut root, &particles);
+        computeMassDistribution(0, &mut arena, &particles);
+        threadTree(0, usize::MAX, &mut arena);
         total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_tree += unsafe { _rdtsc() } - start_cycles;
 
         start_time = Instant::now();
-        start_cycles = unsafe { _rdtsc() };
-        for k in 0..NUM_PARTICLES
+        for i in 0..particles.len()
         {
-            calculateForcesPtr(k, &root, &mut particles);
+            calculateForces(i, &mut arena, &mut particles);
         }
 
 
-        // if i == FRAMES - 1 || i == 0 || i == 150{
-        //     validateForceAccuracy(i, &particles);
+        // if j == FRAMES - 1 || j == 0 || j == 150{
+        //     validateForceAccuracy(j, &particles);
         // }
 
         for p in &mut particles
@@ -386,25 +369,22 @@ fn mainMain()
             p.acc_y = 0.0;
         }
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
 
-        // if i == 0 || i == FRAMES - 1 {
+        // if j == 0 || j == FRAMES - 1 {
         //     let metrics = calculate_physics_diagnostics(&particles);
-        //     println!("Frame {}:", i);
+        //     println!("Frame {}:", j);
         //     println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
         //     println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
         //     println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
         // }
 }
 
-    println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
-    println!("Cykle liczenia sil: {} cykli / klatke", total_cycles_force / (FRAMES as u64));
-    println!("Calkowity czas symulacji: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
-    println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
-    println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
+    println!("Total simulation time: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
+    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));
 
-    // let ref_path = Path::new("wzorzec_1000k.txt");
+    // let ref_path = Path::new("reference_1000k.txt");
     // match File::open(&ref_path) {
     //     Ok(ref_file) => {
     //         let ref_reader = io::BufReader::new(ref_file);
@@ -417,7 +397,7 @@ fn mainMain()
     //             if idx >= NUM_PARTICLES {
     //                 break;
     //             }
-                
+
     //             let line = match line {
     //                 Ok(l) => l,
     //                 Err(_) => break,
@@ -447,8 +427,8 @@ fn mainMain()
 
     //         if particle_count > 0 {
     //             let mean_absolute_error = total_error / particle_count as f32;
-    //             println!("Sredni blad pozycji (MAE): {:.6} jednostek", mean_absolute_error);
-    //             println!("Maksymalny blad pozycji: {:.6} jednostek", max_error);
+    //             println!("Mean absolute position error (MAE): {:.6} units", mean_absolute_error);
+    //             println!("Maximum position error: {:.6} units", max_error);
     //         }
     //     }
     //     Err(_) => {
@@ -457,9 +437,11 @@ fn mainMain()
     // }
 }
 
-fn main()
-{
-    for _ in 0..3 {
-        mainMain();
-    }
+fn main() {
+    let options = match benchmark_options::parse_options() {
+        Ok(options) => options,
+        Err(message) => { eprintln!("{message}"); std::process::exit(1); }
+    };
+    THETA.set(options.theta).expect("benchmark options initialized once");
+    mainMain(&options);
 }

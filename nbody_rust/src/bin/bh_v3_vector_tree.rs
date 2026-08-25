@@ -1,17 +1,19 @@
 #![allow(non_snake_case)]
 
 use std::time::Instant;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::_rdtsc;
+use std::sync::OnceLock;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const NUM_PARTICLES: usize = 2000000;
-const FRAMES: usize = 25;
-const TIME_STEP: f32 = 0.016; 
-const THETA: f32 = 0.3;
+const TIME_STEP: f32 = 0.016;
 const G : f32 = 1.0;
+static THETA: OnceLock<f32> = OnceLock::new();
+
+#[path = "../benchmark_options.rs"]
+mod benchmark_options;
+
+fn theta() -> f32 { *THETA.get().expect("benchmark options were not initialized") }
 
 struct Particle {
     velocity_x: f32,
@@ -49,7 +51,7 @@ impl Default for Node {
     }
 }
 
-fn getQuadrant(node: &Node, particle: &Particle) -> i32 
+fn getQuadrant(node: &Node, particle: &Particle) -> i32
 {
     let mut quadrant = 0;
     if particle.pos_x > node.bounds_x { quadrant += 1; }
@@ -64,7 +66,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     {
         let oldIdx: usize = arena[nodeIdx].particle_index;
         let mut shift = 0.0001;
-        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y 
+        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
         {
             particles[pIdx].pos_x += shift;
             shift *= 2.0;
@@ -89,7 +91,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     let half_size = arena[nodeIdx].half_size / 2.0;
     for i in 0..4
     {
-        let offset_x = ((i % 2) * 2) as f32 - 1.0; 
+        let offset_x = ((i % 2) * 2) as f32 - 1.0;
         let offset_y = ((i / 2) * 2) as f32 - 1.0;
         arena[nodeIdx].children[i] = arena.len();
 
@@ -108,7 +110,7 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
     insertParticle(nodeIdx, pIdx, arena, particles);
 }
 
-fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>) 
+fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>)
 {
     //let node = &mut arena[nodeIdx];
     if arena[nodeIdx].children[0] != usize::MAX
@@ -126,20 +128,20 @@ fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Ve
             arena[nodeIdx].center_of_mass_x += arena[childIdx].center_of_mass_x * arena[childIdx].mass;
             arena[nodeIdx].center_of_mass_y += arena[childIdx].center_of_mass_y * arena[childIdx].mass;
         }
-        if arena[nodeIdx].mass > 0.0 
+        if arena[nodeIdx].mass > 0.0
         {
             arena[nodeIdx].center_of_mass_x /= arena[nodeIdx].mass;
             arena[nodeIdx].center_of_mass_y /= arena[nodeIdx].mass;
         }
     }
-    else if arena[nodeIdx].particle_index != usize::MAX 
+    else if arena[nodeIdx].particle_index != usize::MAX
     {
         let pIdx = arena[nodeIdx].particle_index;
         arena[nodeIdx].mass = particles[pIdx].mass;
         arena[nodeIdx].center_of_mass_x = particles[pIdx].pos_x;
         arena[nodeIdx].center_of_mass_y = particles[pIdx].pos_y;
     }
-        else 
+        else
     {
         arena[nodeIdx].mass = 0.0;
         arena[nodeIdx].center_of_mass_x = 0.0;
@@ -165,7 +167,7 @@ fn calculateForces(pIdx: usize, nodeIdx: usize, arena: &Vec<Node>, particles: &m
 
     let r_sq = 2.0 * node.half_size * node.half_size;
 
-    if r_sq < THETA * THETA * dist_sq || node.children[0] == usize::MAX
+    if r_sq < theta() * theta() * dist_sq || node.children[0] == usize::MAX
     {
         let dist = dist_sq.sqrt();
         let acc = G * node.mass / (dist_sq + 1.0);
@@ -180,7 +182,7 @@ fn calculateForces(pIdx: usize, nodeIdx: usize, arena: &Vec<Node>, particles: &m
         }
     }
 }
- 
+
 pub struct PhysicsMetrics {
     pub total_momentum_x: f64,
     pub total_momentum_y: f64,
@@ -189,7 +191,8 @@ pub struct PhysicsMetrics {
     pub center_y: f64,
 }
 
-pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
+#[allow(dead_code)]
+fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     let mut m = PhysicsMetrics {
         total_momentum_x: 0.0,
         total_momentum_y: 0.0,
@@ -200,7 +203,7 @@ pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     let mut total_mass = 0.0;
 
     for p in particles {
-        // Rzutowanie na f64 chroni przed utratą precyzji
+        // Casting to f64 reduces precision loss
         let mass = p.mass as f64;
         let vx = p.velocity_x as f64;
         let vy = p.velocity_y as f64;
@@ -222,8 +225,9 @@ pub fn calculate_physics_diagnostics(particles: &[Particle]) -> PhysicsMetrics {
     m
 }
 
+#[allow(dead_code)]
 fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
-    println!("\n--- WALIDACJA DOKLADNOSCI SILY (Klatka {}) ---", current_frame);
+    println!("\n--- FORCE ACCURACY VALIDATION (Frame {}) ---", current_frame);
 
     let mut sum_diff_sq: f64 = 0.0;
     let mut sum_bf_sq: f64 = 0.0;
@@ -265,7 +269,7 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
     }
 
     let rms_error = (sum_diff_sq / sum_bf_sq).sqrt();
-    
+
     local_relative_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut p95_error = 0.0;
     if !local_relative_errors.is_empty() {
@@ -273,35 +277,35 @@ fn validateForceAccuracy(current_frame: usize, bh_particles: &[Particle]) {
         p95_error = local_relative_errors[p95_index];
     }
 
-    println!("Globalny blad sily (RMS): {:.4} %", rms_error * 100.0);
-    println!("Blad 95. percentyla:      {:.4} %", p95_error * 100.0);
+    println!("Global force error (RMS): {:.4} %", rms_error * 100.0);
+    println!("95th percentile error:      {:.4} %", p95_error * 100.0);
     println!("--------------------------------------------------");
 }
 
-fn mainMain()
+fn mainMain(options: &benchmark_options::BenchmarkOptions)
 {
     // let mut particles: Vec<Particle> = Vec::with_capacity(NUM_PARTICLES);
     // let mut arena: Vec<Node> = Vec::with_capacity(10 * NUM_PARTICLES);
     let mut particles = Vec::new();
     let mut arena = Vec::new();
-    
-    let path = Path::new("start_2000k.txt");
+
+    let path = Path::new(&options.input);
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
-            eprintln!("Blad: Nie mozna otworzyc pliku start_50k.txt. Czy na pewno wygenerowales plik?");
+            eprintln!("Error: Could not open input file {}.", options.input);
             std::process::exit(1);
         }
     };
-    
+
     let reader = io::BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("Blad odczytu linii z pliku");
-        
-        // Rozdzielamy linię po spacjach
+        let line = line.expect("Error while reading a line from the file");
+
+        // Split the line by spaces
         let parts: Vec<&str> = line.split_whitespace().collect();
-        
+
         if parts.len() == 5 {
             particles.push(Particle {
                 pos_x: parts[0].parse().unwrap(),
@@ -317,13 +321,14 @@ fn mainMain()
 
     let mut total_force_time_ms = 0.0;
     let mut total_tree_time_ms = 0.0;
-    let mut total_cycles_force: u64 = 0;
-    let mut total_cycles_tree: u64 = 0;
+    if let Err(message) = benchmark_options::validate_particle_count(options, particles.len()) {
+        eprintln!("{message}");
+        return;
+    }
 
-    for j in 0..FRAMES {
-        
+    for _j in 0..options.frames {
+
         let mut start_time = Instant::now();
-        let mut start_cycles = unsafe { _rdtsc() }; 
 
         let mut minX = particles[0].pos_x;
         let mut maxX = particles[0].pos_x;
@@ -351,7 +356,7 @@ fn mainMain()
         arena.clear();
         arena.push(root);
 
-        for i in 0..NUM_PARTICLES
+        for i in 0..particles.len()
         {
             insertParticle(0, i, &mut arena, &mut particles);
         }
@@ -359,18 +364,16 @@ fn mainMain()
         //     let particlesMem: usize = particles.capacity() * std::mem::size_of::<Particle>();
         //     let arenaMem: usize = arena.capacity() * std::mem::size_of::<Node>();
         //     let totalAppMemMB = (particlesMem + arenaMem) as f64 / (1024.0 * 1024.0);
-        //     println!("Zuzycie pamieci algorytmu: {} MB", totalAppMemMB);
+        //     println!("Algorithm memory usage: {} MB", totalAppMemMB);
         //     println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
         //     println!("Size of Node (V3): {:.6} bytes", std::mem::size_of::<Node>());
         // }
 
         computeMassDistribution(0, &mut arena, &particles);
         total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_tree += unsafe { _rdtsc() } - start_cycles;
 
         start_time = Instant::now();
-        start_cycles = unsafe { _rdtsc() };
-        for i in 0..NUM_PARTICLES
+        for i in 0..particles.len()
         {
             calculateForces(i, 0, &mut arena, &mut particles);
         }
@@ -391,7 +394,6 @@ fn mainMain()
             p.acc_y = 0.0;
         }
         total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
-        total_cycles_force += unsafe { _rdtsc() } - start_cycles;
 
         // if j == 0 || j == FRAMES - 1 {
         //     let metrics = calculate_physics_diagnostics(&particles);
@@ -402,13 +404,11 @@ fn mainMain()
         // }
 }
 
-    println!("Czas liczenia sil: {:.4} ms / klatke", total_force_time_ms / (FRAMES as f64));
-    println!("Cykle liczenia sil: {} cykli / klatke", total_cycles_force / (FRAMES as u64));
-    println!("Calkowity czas symulacji: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
-    println!("Czas budowy drzewa: {:.4} ms / klatke", total_tree_time_ms / (FRAMES as f64));
-    println!("Cykle budowy drzewa: {} cykli / klatke", total_cycles_tree / (FRAMES as u64));
+    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
+    println!("Total simulation time: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
+    println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));
 
-    // let ref_path = Path::new("wzorzec_1000k.txt");
+    // let ref_path = Path::new("reference_1000k.txt");
     // match File::open(&ref_path) {
     //     Ok(ref_file) => {
     //         let ref_reader = io::BufReader::new(ref_file);
@@ -421,7 +421,7 @@ fn mainMain()
     //             if idx >= NUM_PARTICLES {
     //                 break;
     //             }
-                
+
     //             let line = match line {
     //                 Ok(l) => l,
     //                 Err(_) => break,
@@ -451,8 +451,8 @@ fn mainMain()
 
     //         if particle_count > 0 {
     //             let mean_absolute_error = total_error / particle_count as f32;
-    //             println!("Sredni blad pozycji (MAE): {:.6} jednostek", mean_absolute_error);
-    //             println!("Maksymalny blad pozycji: {:.6} jednostek", max_error);
+    //             println!("Mean absolute position error (MAE): {:.6} units", mean_absolute_error);
+    //             println!("Maximum position error: {:.6} units", max_error);
     //         }
     //     }
     //     Err(_) => {
@@ -462,7 +462,10 @@ fn mainMain()
 }
 
 fn main() {
-    for i in 0..3 {
-        mainMain();
-    }
+    let options = match benchmark_options::parse_options() {
+        Ok(options) => options,
+        Err(message) => { eprintln!("{message}"); std::process::exit(1); }
+    };
+    THETA.set(options.theta).expect("benchmark options initialized once");
+    mainMain(&options);
 }

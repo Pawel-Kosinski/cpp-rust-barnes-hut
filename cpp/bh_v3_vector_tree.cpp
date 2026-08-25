@@ -6,12 +6,11 @@
 #include <fstream> 
 #include <cmath>
 #include <iomanip>
+#include "benchmark_options.hpp"
 
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
-constexpr float THETA = 0.3f;
-constexpr float FRAMES = 10;
-constexpr int NUM_PARTICLES = 5000000;
+float THETA = 0.3f;
 
 struct Particle
 {
@@ -156,7 +155,7 @@ PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particle
 
 void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& particles, const std::vector<Node>& arena)
 {
-    //Zabezpieczenie przed pustymi dziećmi
+    //Guard against empty children
     if (nodeIdx == -1) return;
 
     Particle& p = particles[pIdx];
@@ -191,7 +190,7 @@ void calculateForcesRecursive(int pIdx, int nodeIdx, std::vector<Particle>& part
     }
 }
 
-int mainMain()
+int mainMain(const BenchmarkOptions& options)
 {
     srand(42);
     std::vector<Particle> particles;
@@ -199,13 +198,11 @@ int mainMain()
     Timer timer;
     float totalTreeBuildTime = 0.0f;
     float totalForceTime = 0.0f;
-    unsigned long long totalCyclesTree = 0;
-    unsigned long long totalCyclesForce = 0;
 
-    std::ifstream inFile("start_5000k.txt");
+    std::ifstream inFile(options.input);
     if (!inFile)
     {
-        std::cerr << "Blad: Nie mozna otworzyc pliku start_5000k.txt!\n";
+        std::cerr << "Error: Could not open file " << options.input << "!\n";
         return 1;
     }
 
@@ -218,10 +215,11 @@ int mainMain()
         particles.push_back(p);
     }
     inFile.close();
+    if (!validateParticleCount(options, particles.size())) return 1;
 
     //treeArena.reserve(particles.size() * 10);
 
-    for (int frame = 0; frame < FRAMES; ++frame)
+    for (int frame = 0; frame < options.frames; ++frame)
     {
         timer.start(); 
         float minX = particles[0].posX, maxX = particles[0].posX;
@@ -254,22 +252,21 @@ int mainMain()
         }
 
         // if (frame == 0) {
-        //     // Rozmiar cząstek:
+        //     // Particle array size:
         //     size_t particlesMem = particles.capacity() * sizeof(Particle);
-        //     // Maksymalny rozmiar zarezerwowanej areny drzewa:
+        //     // Maximum reserved tree-arena size:
         //     size_t treeMem = treeArena.capacity() * sizeof(Node);
 
         //     std::cout << std::fixed << std::setprecision(6);
         //     double totalAppMemMB = static_cast<double>(particlesMem + treeMem) / (1024.0 * 1024.0);
-        //     std::cout << "zuzycie pamieci algorytmu: " << totalAppMemMB << " MB\n";
-        //     std::cout << "Stworzono " << treeArena.size() << " wezlow drzewa.\n";
+        //     std::cout << "algorithm memory usage: " << totalAppMemMB << " MB\n";
+        //     std::cout << "Created " << treeArena.size() << " tree nodes.\n";
         //     std::cout << "Size of Particle: " << sizeof(Particle) << " bytes\n";
         //     std::cout << "Size of Node (V3): " << sizeof(Node) << " bytes\n";
         // }
 
         computeMassDistribution(0, treeArena, particles);
         totalTreeBuildTime += timer.stopTime();
-        totalCyclesTree += timer.stopCycles();
 
         timer.start();
         for (int i = 0; i < particles.size(); ++i)
@@ -288,7 +285,6 @@ int mainMain()
             particle.accY = 0.0f;
         }
         totalForceTime += timer.stopTime();
-        totalCyclesForce += timer.stopCycles();
         // if (frame == 0 or frame == FRAMES - 1) {
         //     auto metrics = calculatePhysicsDiagnostics(particles);
         //     std::cout << "Frame " << frame << ":\n";
@@ -297,12 +293,10 @@ int mainMain()
         //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         // }
     }
-    std::cout << "Czas budowy drzewa: " << (totalTreeBuildTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Czas liczenia sil:  " << (totalForceTime / FRAMES) << " ms / klatke\n";
-    std::cout << "Calkowity czas symulacji: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
-    std::cout << "Cykle budowy drzewa: " << std::fixed << (totalCyclesTree / FRAMES) << " cykli / klatke\n";
-    std::cout << "Cykle liczenia sil:  " << std::fixed << (totalCyclesForce / FRAMES) << " cykli / klatke\n";
-    // std::ifstream outFile("wzorzec_5000k.txt");
+    std::cout << "Tree construction time: " << (totalTreeBuildTime / options.frames) << " ms / frame\n";
+    std::cout << "Force calculation time:  " << (totalForceTime / options.frames) << " ms / frame\n";
+    std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    // std::ifstream outFile("reference_5000k.txt");
     // if (!outFile) 
     // {
     //     std::cout << "file error.\n";
@@ -328,16 +322,16 @@ int mainMain()
     //     outFile.close();
         
     //     float meanAbsoluteError = totalError / NUM_PARTICLES;
-    //     std::cout << "Sredni blad pozycji (MAE): " << meanAbsoluteError << " jednostek\n";
-    //     std::cout << "Maksymalny blad pozycji: " << maxError << " jednostek\n";
+    //     std::cout << "Mean absolute position error (MAE): " << meanAbsoluteError << " units\n";
+    //     std::cout << "Maximum position error: " << maxError << " units\n";
     // }
     return 0;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    for (int i = 0; i < 3; ++i) {
-        mainMain();
-    }
-    return 0;
+    BenchmarkOptions options;
+    if (!parseBenchmarkOptions(argc, argv, options)) return argc > 1 ? 1 : 0;
+    THETA = options.theta;
+    return mainMain(options);
 }

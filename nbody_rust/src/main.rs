@@ -1,7 +1,9 @@
 fn main() {
-    println!("Hello, world!");
+    println!("BHBench-CR Rust benchmark suite");
+    println!("Run individual benchmark variants with:");
+    println!("  cargo run --release --bin bh_v1_direct");
+    println!("  cargo run --release --bin bh_v2_pointer_tree");
+    println!("  cargo run --release --bin bh_v3_vector_tree");
+    println!("  cargo run --release --bin bh_v4_threaded_tree");
+    println!("  cargo run --release --bin bh_v5_parallel_force");
 }
-//clang++ -O3 1brute_force.cpp -o 1
-//cargo run --release --bin 1brute_force   
-//clang++ -O3 -fopenmp 5multi_thread.cpp -o 5   
-//cargo run --relase --bin --threads 5
