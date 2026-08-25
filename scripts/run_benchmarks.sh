@@ -69,7 +69,7 @@ for language in cpp rust; do
     done
 done
 
-awk -F, 'NR == 1 { next } { key=$1 FS $2; n[key]++; tree[key]+=$8; tree2[key]+=$8*$8; force[key]+=$9; force2[key]+=$9*$9; total[key]+=$10; total2[key]+=$10*$10 } END { print "language,variant,runs,tree_ms_mean,tree_ms_std,force_ms_mean,force_ms_std,total_ms_mean,total_ms_std"; for (key in n) { split(key,k,FS); print k[1] "," k[2] "," n[key] "," tree[key]/n[key] "," sqrt(tree2[key]/n[key]-(tree[key]/n[key])^2) "," force[key]/n[key] "," sqrt(force2[key]/n[key]-(force[key]/n[key])^2) "," total[key]/n[key] "," sqrt(total2[key]/n[key]-(total[key]/n[key])^2) } }' "$raw" > "$summary"
+awk -F, -f scripts/summarize_results.awk "$raw" > "$summary"
 
 commit=$(git rev-parse HEAD)
 printf '{\n  "commit": "%s",\n  "date_utc": "%s",\n  "system": "%s",\n  "kernel": "%s",\n  "compiler": "%s",\n  "rustc": "%s",\n  "parameters": {"input": "%s", "particles": %s, "frames": %s, "repeats": %s, "theta": %s, "threads": %s}\n}\n' "$commit" "$(date -u +%FT%TZ)" "$(uname -s)" "$(uname -r)" "$(c++ --version 2>/dev/null | head -n 1 || true)" "$(rustc --version)" "$input" "$particles" "$frames" "$repeats" "$theta" "$threads" > "$environment"

@@ -20,3 +20,8 @@ jobs:
       - name: Build Rust
         working-directory: nbody_rust
         run: cargo build --release --bins
+      - name: Smoke and summary tests
+        if: runner.os == 'Linux'
+        run: |
+          bash scripts/smoke_test.sh
+          bash scripts/test_summary_stats.sh

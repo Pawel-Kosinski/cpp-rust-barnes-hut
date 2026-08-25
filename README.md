@@ -1,6 +1,8 @@
 # BHBench-CR
 
-BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. It is intended for reproducible implementation experiments, teaching, and comparative studies of data layout, traversal strategy, and parallel force evaluation in C++/OpenMP and Rust/Rayon.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22102924.svg)](https://doi.org/10.5281/zenodo.22102924)
+
+BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. It is intended for reproducible implementation experiments, teaching, and comparative studies of data layout, traversal strategy, and the way matched solver strategies are expressed in C++/OpenMP and Rust/Rayon.
 
 The software is not intended to be a production astrophysical simulator or a state-of-the-art 3D tree code. Its purpose is to provide a compact and reproducible benchmark workload for studying implementation trade-offs in tree-based N-body solvers.
 
@@ -143,6 +145,10 @@ This project is distributed under the MIT License. See:
 
 ## Citation
 
-If you use this software, please cite the associated SoftwareX article and this repository. Citation metadata are provided in:
+If you use this software, please cite the associated SoftwareX article and the archived v1.1.1 release:
+
+    https://doi.org/10.5281/zenodo.22102924
+
+Citation metadata are provided in:
 
     CITATION.cff
