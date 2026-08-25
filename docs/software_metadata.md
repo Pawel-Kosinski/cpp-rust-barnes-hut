@@ -4,9 +4,15 @@
 
 BHBench-CR
 
+## Archived release
+
+- Version: 1.1.1
+- DOI: https://doi.org/10.5281/zenodo.22102924
+- GitHub release: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.1
+
 ## Purpose
 
-BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. It supports reproducible comparison of memory layout, tree traversal strategy, and parallel force evaluation in C++/OpenMP and Rust/Rayon.
+BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. It supports reproducible comparison of memory layout, tree traversal strategy, and the language/runtime realization of matched algorithms in C++/OpenMP and Rust/Rayon.
 
 ## Languages
 
