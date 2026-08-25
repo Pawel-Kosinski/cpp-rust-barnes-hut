@@ -133,7 +133,7 @@ int main(int argc, char** argv)
             particle.accX = 0.0f;
             particle.accY = 0.0f;
         }
-        if (frame == 0 or frame == options.frames - 1) {
+        if (frame == 0 || frame == options.frames - 1) {
             auto metrics = calculatePhysicsDiagnostics(particles);
             std::cout << "Frame " << frame << ":\n";
             std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
