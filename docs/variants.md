@@ -12,11 +12,11 @@ A Barnes-Hut quadtree using pointer-based node allocation. This version is retai
 
 ## V3: Contiguous index-based quadtree
 
-A Barnes-Hut quadtree stored in a contiguous vector/arena. Child relationships are represented with integer indices rather than pointers.
+A Barnes-Hut quadtree stored in a contiguous vector/arena. Child relationships are represented with integer indices rather than pointers. Its C++ `NodeV3` layout intentionally has no threaded-traversal field, matching the Rust V3 structure.
 
 ## V4: Iterative threaded tree traversal
 
-A recursion-free traversal using an additional next-node index. This variant evaluates the trade-off between reduced traversal-control overhead and increased node size.
+A recursion-free traversal using an additional next-node index. C++ and Rust both add this field only in V4/V5, so the V3-to-V4 layout change is matched across languages.
 
 ## V5: Parallel force evaluation
 

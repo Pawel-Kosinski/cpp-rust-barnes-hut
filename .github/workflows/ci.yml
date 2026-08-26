@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [softwarex]
+    branches: [main, 'softwarex*']
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -20,8 +21,10 @@ jobs:
       - name: Build Rust
         working-directory: nbody_rust
         run: cargo build --release --bins
-      - name: Smoke and summary tests
+      - name: Scientific and reproducibility tests
         if: runner.os == 'Linux'
         run: |
-          bash scripts/smoke_test.sh
+          bash scripts/smoke_test.sh --no-build
           bash scripts/test_summary_stats.sh
+          bash scripts/numerical_regression.sh --no-build
+          bash scripts/test_archive_runner.sh

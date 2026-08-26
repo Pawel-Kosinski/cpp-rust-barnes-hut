@@ -12,6 +12,7 @@
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
 float THETA = 0.3f;
+using Node = NodeV4;
 
 struct Particle
 {
@@ -73,7 +74,7 @@ void insertParticle(int nodeIdx, int pIdx, std::vector<Node>& arena, std::vector
         child.halfSize = arena[nodeIdx].halfSize / 2.0f;
         child.boundsX = arena[nodeIdx].boundsX + ((i % 2) * 2 - 1) * child.halfSize;
         child.boundsY = arena[nodeIdx].boundsY + ((i / 2) * 2 - 1) * child.halfSize;
-        arena[nodeIdx].children[i] = arena.size();
+        arena[nodeIdx].children[i] = static_cast<int>(arena.size());
         arena.push_back(child);
     }
     insertParticle(nodeIdx, oldPIdx, arena, particles);
@@ -153,7 +154,7 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
         }
 
         float side_length = node.halfSize * 2.0f;
-        float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+        float r_c_sq = (side_length * side_length) * 0.5f; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
         if (r_c_sq < THETA * THETA * distSq || node.children[0] == -1)
         {
             float dist = std::sqrt(distSq);
@@ -215,12 +216,12 @@ void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_par
 
     // Compute reference O(N^2) forces for the current Barnes-Hut positions
     //#pragma omp parallel for reduction(+:sum_diff_sq, sum_bf_sq) schedule(dynamic, 32)
-    for (int i = 0; i < bh_particles.size(); ++i) 
+    for (std::size_t i = 0; i < bh_particles.size(); ++i)
     {
         float exact_accX = 0.0f;
         float exact_accY = 0.0f;
         
-        for (int j = 0; j < bh_particles.size(); ++j) 
+        for (std::size_t j = 0; j < bh_particles.size(); ++j)
         {
             if (i == j) continue;
             float dx = bh_particles[j].posX - bh_particles[i].posX;
@@ -249,10 +250,7 @@ void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_par
         double diff_norm = std::sqrt(diff_sq);
         if (exact_norm > 1e-6) {
             double rel_err = diff_norm / exact_norm;
-            #pragma omp critical
-            {
-                local_relative_errors.push_back(rel_err);
-            }
+            local_relative_errors.push_back(rel_err);
         }
     }
 
@@ -278,8 +276,8 @@ int mainMain(const BenchmarkOptions& options)
     std::vector<Node> treeArena;
     //treeArena.reserve(particles.size() * 6);
     Timer timer;
-    float totalTreeBuildTime = 0.0f;
-    float totalForceTime = 0.0f;
+    double totalTreeBuildTime = 0.0;
+    double totalForceTime = 0.0;
 
    std::ifstream inFile(options.input);
     if (!inFile)
@@ -301,18 +299,18 @@ int mainMain(const BenchmarkOptions& options)
 
     //treeArena.reserve(particles.size() * 6);
 
-    for (int frame = 0; frame < options.frames; ++frame)
+    for (int frame = 0; frame < options.totalFrames(); ++frame)
     {
         timer.start(); 
         float minX = particles[0].posX, maxX = particles[0].posX;
         float minY = particles[0].posY, maxY = particles[0].posY;
         
-        for (const auto& p : particles)
+        for (const auto& particle : particles)
         {
-            if (p.posX < minX) minX = p.posX;
-            if (p.posX > maxX) maxX = p.posX;
-            if (p.posY < minY) minY = p.posY;
-            if (p.posY > maxY) maxY = p.posY;
+            if (particle.posX < minX) minX = particle.posX;
+            if (particle.posX > maxX) maxX = particle.posX;
+            if (particle.posY < minY) minY = particle.posY;
+            if (particle.posY > maxY) maxY = particle.posY;
         }
 
         float centerX = (minX + maxX) / 2.0f;
@@ -328,9 +326,9 @@ int mainMain(const BenchmarkOptions& options)
         root.halfSize = maxHalfSize;
         treeArena.push_back(root);
 
-        for (int i = 0; i < particles.size(); ++i)
+        for (std::size_t i = 0; i < particles.size(); ++i)
         {
-            insertParticle(0, i, treeArena, particles);
+            insertParticle(0, static_cast<int>(i), treeArena, particles);
         }
         // if (frame == 0) {
         //     // Particle array size:
@@ -349,17 +347,20 @@ int mainMain(const BenchmarkOptions& options)
         computeMassDistribution(0, treeArena, particles);
         threadTree(0, -1, treeArena);
 
-        totalTreeBuildTime += timer.stopTime();
+        const double treeTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalTreeBuildTime += treeTime;
         // if(frame == 0) {
         //     std::cout << "Tree construction time: " << (totalTreeBuildTime) << " ms\n";
         //     std::cout << "Tree construction cycles: " << std::fixed << (totalCyclesTree) << " cycles\n";
         // }
 
         timer.start();
-        for (int i = 0; i < particles.size(); ++i)
+        for (std::size_t i = 0; i < particles.size(); ++i)
         {
-            calculateForces(i, particles, treeArena);
+            calculateForces(static_cast<int>(i), particles, treeArena);
         }
+
+        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles)) return 1;
 
         // if (frame == 0 or frame == FRAMES - 1 or frame == 150) { 
         //     validateForceAccuracy(frame, particles);
@@ -377,7 +378,8 @@ int mainMain(const BenchmarkOptions& options)
             particle.accX = 0.0f; 
             particle.accY = 0.0f; 
         }
-        totalForceTime += timer.stopTime();
+        const double forceTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalForceTime += forceTime;
         // if (frame == 0 or frame == FRAMES - 1) {
         //     auto metrics = calculatePhysicsDiagnostics(particles);
         //     std::cout << "Frame " << frame << ":\n";
@@ -387,9 +389,11 @@ int mainMain(const BenchmarkOptions& options)
         // }
     }
 
+    std::cout << std::fixed << std::setprecision(6);
     std::cout << "Tree construction time: " << (totalTreeBuildTime / options.frames) << " ms / frame\n";
-    std::cout << "Force calculation time:  " << (totalForceTime / options.frames) << " ms / frame\n";
-    std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Force/update time: " << (totalForceTime / options.frames) << " ms / frame\n";
+    std::cout << "Cleanup time: 0.000000 ms / frame\n";
+    std::cout << "Total measured time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     // std::ifstream outFile("reference_5000k.txt");
     // if (!outFile) 
     // {

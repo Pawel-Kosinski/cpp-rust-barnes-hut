@@ -128,7 +128,7 @@ void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particle
 
     float side_length = node->halfSize * 2.0f;
     // if ((s / dist) < THETA
-    float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+    float r_c_sq = (side_length * side_length) * 0.5f; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
     if (r_c_sq < THETA * THETA * distSq || node->children[0] == nullptr)
     {
         float dist = std::sqrt(distSq);
@@ -207,8 +207,9 @@ int mainMain(const BenchmarkOptions& options)
     srand(42);
     std::vector<Particle> particles;
     Timer timer;
-    float totalTreeBuildTime = 0.0f;
-    float totalForceTime = 0.0f;
+    double totalTreeBuildTime = 0.0;
+    double totalForceTime = 0.0;
+    double totalCleanupTime = 0.0;
     particles.reserve(options.particles);
 
     std::ifstream inFile(options.input);
@@ -229,18 +230,18 @@ int mainMain(const BenchmarkOptions& options)
     inFile.close();
     if (!validateParticleCount(options, particles.size())) return 1;
 
-    for (int frame = 0; frame < options.frames; ++frame)
+    for (int frame = 0; frame < options.totalFrames(); ++frame)
     {
         timer.start();
         float minX = particles[0].posX, maxX = particles[0].posX;
         float minY = particles[0].posY, maxY = particles[0].posY;
 
-        for (const auto& p : particles)
+        for (const auto& particle : particles)
         {
-            if (p.posX < minX) minX = p.posX;
-            if (p.posX > maxX) maxX = p.posX;
-            if (p.posY < minY) minY = p.posY;
-            if (p.posY > maxY) maxY = p.posY;
+            if (particle.posX < minX) minX = particle.posX;
+            if (particle.posX > maxX) maxX = particle.posX;
+            if (particle.posY < minY) minY = particle.posY;
+            if (particle.posY > maxY) maxY = particle.posY;
         }
 
         float centerX = (minX + maxX) / 2.0f;
@@ -254,8 +255,8 @@ int mainMain(const BenchmarkOptions& options)
         rootPtr->boundsY = centerY;
         rootPtr->halfSize = maxHalfSize;
 
-        for (int i = 0; i < particles.size(); ++i) {
-            insertParticlePtr(rootPtr, i, particles);
+        for (std::size_t i = 0; i < particles.size(); ++i) {
+            insertParticlePtr(rootPtr, static_cast<int>(i), particles);
         }
         // if (frame == 0) {
         //     //Particle array size:
@@ -273,13 +274,15 @@ int mainMain(const BenchmarkOptions& options)
         // }
 
         computeMassDistributionPtr(rootPtr, particles);
-        totalTreeBuildTime += timer.stopTime();
+        const double treeTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalTreeBuildTime += treeTime;
 
         timer.start();
-        for (int i = 0; i < particles.size(); ++i)
+        for (std::size_t i = 0; i < particles.size(); ++i)
         {
-            calculateForcesPtr(i, rootPtr, particles);
+            calculateForcesPtr(static_cast<int>(i), rootPtr, particles);
         }
+        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles)) return 1;
         for (auto& particle : particles)
         {
             particle.velocityX += particle.accX * TIME_STEP;
@@ -290,9 +293,13 @@ int mainMain(const BenchmarkOptions& options)
             particle.accX = 0.0f;
             particle.accY = 0.0f;
         }
-        totalForceTime += timer.stopTime();
-        // Destruction is deliberately outside the timed phases for parity with arena variants.
+        const double forceTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalForceTime += forceTime;
+
+        timer.start();
         deleteTreePtr(rootPtr);
+        const double cleanupTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalCleanupTime += cleanupTime;
         // if (frame == 0 or frame == FRAMES - 1) {
         //     auto metrics = calculatePhysicsDiagnostics(particles);
         //     std::cout << "Frame " << frame << ":\n";
@@ -301,9 +308,11 @@ int mainMain(const BenchmarkOptions& options)
         //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         // }
     }
+    std::cout << std::fixed << std::setprecision(6);
     std::cout << "Tree construction time: " << (totalTreeBuildTime / options.frames) << " ms / frame\n";
-    std::cout << "Force calculation time:  " << (totalForceTime / options.frames) << " ms / frame\n";
-    std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Force/update time: " << (totalForceTime / options.frames) << " ms / frame\n";
+    std::cout << "Cleanup time: " << (totalCleanupTime / options.frames) << " ms / frame\n";
+    std::cout << "Total measured time: " << (totalTreeBuildTime + totalForceTime + totalCleanupTime) << " ms\n";
     // std::ifstream outFile("reference_2000k.txt");
     // if (!outFile)
     // {

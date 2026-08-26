@@ -13,6 +13,7 @@ nbody_rust/target/
 # CMake
 build/
 cmake-build-*/
+tmp/
 
 # Editor/OS
 .vscode/
@@ -25,3 +26,7 @@ start_*.txt
 reference_*.txt
 wzorzec_*.txt
 sample_start_*.txt
+
+# Local benchmark runs and regenerated large inputs
+results/generated/
+results/manuscript/**/input_*.txt

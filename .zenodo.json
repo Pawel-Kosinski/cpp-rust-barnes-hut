@@ -3,7 +3,7 @@
   "description": "Reproducible C++/Rust implementation benchmarks for two-dimensional Barnes-Hut N-body solvers.",
   "upload_type": "software",
   "access_right": "open",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "publication_date": "2026-08-26",
   "creators": [{"name": "Kosiński, Paweł"}, {"name": "Krużel, Filip"}],
   "license": "MIT",

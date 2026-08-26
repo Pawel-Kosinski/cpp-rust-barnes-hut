@@ -1,0 +1,10 @@
+Algorithm memory usage: 0.437500 MB
+Size of Particle: 28 bytes
+Frame 0:
+Ped (167.540701, 50.918759)
+Energia kinetyczna 819993.366961
+Srodek masy (500.211668, 500.366180)
+Tree construction time: 0.000000 ms / frame
+Force/update time: 378.630700 ms / frame
+Cleanup time: 0.000000 ms / frame
+Total measured time: 378.630700 ms
