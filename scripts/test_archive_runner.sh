@@ -19,6 +19,7 @@ mkdir -p "$archive_root/nbody_rust"
 cp -R "$rust_target_dir" "$archive_root/nbody_rust/target"
 
 cd "$archive_root"
+export BUILD_DIR=build
 bash scripts/run_benchmarks.sh \
     --no-build \
     --input data/smoke_input.txt \
