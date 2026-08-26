@@ -76,7 +76,7 @@ void insertParticle(int nodeIdx, int pIdx, std::vector<Node>& arena, std::vector
         child.halfSize = arena[nodeIdx].halfSize / 2.0f;
         child.boundsX = arena[nodeIdx].boundsX + ((i % 2) * 2 - 1) * child.halfSize;
         child.boundsY = arena[nodeIdx].boundsY + ((i / 2) * 2 - 1) * child.halfSize;
-        arena[nodeIdx].children[i] = arena.size();
+        arena[nodeIdx].children[i] = static_cast<int>(arena.size());
         arena.push_back(child);
     }
     insertParticle(nodeIdx, oldPIdx, arena, particles);
@@ -157,7 +157,7 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
 
         float side_length = node.halfSize * 2.0f;
         // if ((s / dist) < THETA 
-        float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+        float r_c_sq = (side_length * side_length) * 0.5f; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
         if (r_c_sq < THETA * THETA * distSq || node.children[0] == -1)
         {
             float dist = std::sqrt(distSq);
@@ -216,15 +216,16 @@ void validateForceAccuracy(int currentFrame, const std::vector<Particle>& bh_par
     double sum_bf_sq = 0.0;
     std::vector<double> local_relative_errors;
     local_relative_errors.reserve(bh_particles.size());
+    const int particleCount = static_cast<int>(bh_particles.size());
 
     // Compute reference O(N^2) forces for the current Barnes-Hut positions
     #pragma omp parallel for reduction(+:sum_diff_sq, sum_bf_sq) schedule(dynamic, 32)
-    for (std::size_t i = 0; i < bh_particles.size(); ++i)
+    for (int i = 0; i < particleCount; ++i)
     {
         float exact_accX = 0.0f;
         float exact_accY = 0.0f;
         
-        for (std::size_t j = 0; j < bh_particles.size(); ++j)
+        for (int j = 0; j < particleCount; ++j)
         {
             if (i == j) continue;
             float dx = bh_particles[j].posX - bh_particles[i].posX;
@@ -301,6 +302,7 @@ int mainMain(const BenchmarkOptions& options)
     }
     inFile.close();
     if (!validateParticleCount(options, particles.size())) return 1;
+    const int particleCount = static_cast<int>(particles.size());
 
     for (int frame = 0; frame < options.totalFrames(); ++frame)
     {
@@ -308,12 +310,12 @@ int mainMain(const BenchmarkOptions& options)
         float minX = particles[0].posX, maxX = particles[0].posX;
         float minY = particles[0].posY, maxY = particles[0].posY;
         
-        for (const auto& p : particles)
+        for (const auto& particle : particles)
         {
-            if (p.posX < minX) minX = p.posX;
-            if (p.posX > maxX) maxX = p.posX;
-            if (p.posY < minY) minY = p.posY;
-            if (p.posY > maxY) maxY = p.posY;
+            if (particle.posX < minX) minX = particle.posX;
+            if (particle.posX > maxX) maxX = particle.posX;
+            if (particle.posY < minY) minY = particle.posY;
+            if (particle.posY > maxY) maxY = particle.posY;
         }
 
         float centerX = (minX + maxX) / 2.0f;
@@ -354,7 +356,7 @@ int mainMain(const BenchmarkOptions& options)
 
         timer.start();
         #pragma omp parallel for schedule(dynamic, 32)
-        for (std::size_t i = 0; i < particles.size(); ++i)
+        for (int i = 0; i < particleCount; ++i)
         {
             calculateForces(static_cast<int>(i), particles, treeArena);
         }
@@ -366,7 +368,7 @@ int mainMain(const BenchmarkOptions& options)
         // }
 
         #pragma omp parallel for
-        for (std::size_t i = 0; i < particles.size(); ++i)
+        for (int i = 0; i < particleCount; ++i)
         {
             Particle& particle = particles[i];
         

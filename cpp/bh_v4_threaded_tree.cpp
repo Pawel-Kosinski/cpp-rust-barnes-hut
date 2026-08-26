@@ -74,7 +74,7 @@ void insertParticle(int nodeIdx, int pIdx, std::vector<Node>& arena, std::vector
         child.halfSize = arena[nodeIdx].halfSize / 2.0f;
         child.boundsX = arena[nodeIdx].boundsX + ((i % 2) * 2 - 1) * child.halfSize;
         child.boundsY = arena[nodeIdx].boundsY + ((i / 2) * 2 - 1) * child.halfSize;
-        arena[nodeIdx].children[i] = arena.size();
+        arena[nodeIdx].children[i] = static_cast<int>(arena.size());
         arena.push_back(child);
     }
     insertParticle(nodeIdx, oldPIdx, arena, particles);
@@ -154,7 +154,7 @@ void calculateForces(int pIdx, std::vector<Particle>& particles, const std::vect
         }
 
         float side_length = node.halfSize * 2.0f;
-        float r_c_sq = (side_length * side_length) * 0.5; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
+        float r_c_sq = (side_length * side_length) * 0.5f; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
         if (r_c_sq < THETA * THETA * distSq || node.children[0] == -1)
         {
             float dist = std::sqrt(distSq);
@@ -305,12 +305,12 @@ int mainMain(const BenchmarkOptions& options)
         float minX = particles[0].posX, maxX = particles[0].posX;
         float minY = particles[0].posY, maxY = particles[0].posY;
         
-        for (const auto& p : particles)
+        for (const auto& particle : particles)
         {
-            if (p.posX < minX) minX = p.posX;
-            if (p.posX > maxX) maxX = p.posX;
-            if (p.posY < minY) minY = p.posY;
-            if (p.posY > maxY) maxY = p.posY;
+            if (particle.posX < minX) minX = particle.posX;
+            if (particle.posX > maxX) maxX = particle.posX;
+            if (particle.posY < minY) minY = particle.posY;
+            if (particle.posY > maxY) maxY = particle.posY;
         }
 
         float centerX = (minX + maxX) / 2.0f;

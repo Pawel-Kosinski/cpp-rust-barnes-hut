@@ -13,6 +13,7 @@ nbody_rust/target/
 # CMake
 build/
 cmake-build-*/
+tmp/
 
 # Editor/OS
 .vscode/
