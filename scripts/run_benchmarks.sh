@@ -12,6 +12,7 @@ repeats=10
 theta=0.3
 threads=0
 seed=1337
+order_seed=20260826
 languages_csv="cpp,rust"
 variants_csv="v1,v2,v3,v4,v5"
 output_dir=""
@@ -31,6 +32,7 @@ Usage: bash scripts/run_benchmarks.sh [options]
   --theta VALUE           Barnes-Hut opening threshold
   --threads N             V5 threads; 0 detects and records the logical CPU count
   --seed N                Input-generator seed recorded in result metadata
+  --order-seed N          Seed for blocked configuration randomization
   --languages LIST        Comma-separated subset of cpp,rust
   --variants LIST         Comma-separated subset of v1,v2,v3,v4,v5
   --output-dir DIR        New result directory; defaults to a UTC-dated directory
@@ -49,6 +51,7 @@ while [ "$#" -gt 0 ]; do
         --theta) theta="$2"; shift 2 ;;
         --threads) threads="$2"; shift 2 ;;
         --seed) seed="$2"; shift 2 ;;
+        --order-seed) order_seed="$2"; shift 2 ;;
         --languages) languages_csv="$2"; shift 2 ;;
         --variants) variants_csv="$2"; shift 2 ;;
         --output-dir) output_dir="$2"; shift 2 ;;
@@ -80,6 +83,10 @@ if ! is_nonnegative_integer "$repeats" || [ "$repeats" -eq 0 ]; then
 fi
 if ! is_nonnegative_integer "$threads"; then
     echo "--threads must be a non-negative integer" >&2
+    exit 1
+fi
+if ! is_nonnegative_integer "$order_seed"; then
+    echo "--order-seed must be a non-negative integer" >&2
     exit 1
 fi
 if [ ! -f "$input" ]; then
@@ -187,11 +194,26 @@ mkdir -p "$output_dir/logs"
 raw="$output_dir/raw_runs.csv"
 summary="$output_dir/summary.csv"
 environment="$output_dir/environment.json"
-printf '%s\n' 'run_id,started_utc,language,variant,repeat,particles,measured_frames,warmup_frames,theta,seed,requested_threads,effective_threads,input,tree_ms_per_frame,force_update_ms_per_frame,cleanup_ms_per_frame,total_ms_per_frame,total_run_ms,version,commit,log' > "$raw"
+printf '%s\n' 'run_id,started_utc,language,variant,repeat,order_seed,block_position,particles,measured_frames,warmup_frames,theta,seed,requested_threads,effective_threads,input,tree_ms_per_frame,force_update_ms_per_frame,cleanup_ms_per_frame,total_ms_per_frame,total_run_ms,version,commit,log' > "$raw"
 
 run_id="$(basename "$output_dir")"
+configurations=()
 for language in "${languages[@]}"; do
     for variant in "${variants[@]}"; do
+        configurations+=("${language}:${variant}")
+    done
+done
+
+for repeat in $(seq 1 "$repeats"); do
+    mapfile -t randomized_configurations < <(
+        "$python_cmd" scripts/randomize_benchmark_order.py \
+            --seed "$order_seed" --repeat "$repeat" "${configurations[@]}"
+    )
+    block_position=0
+    for configuration in "${randomized_configurations[@]}"; do
+        block_position=$((block_position + 1))
+        configuration="${configuration%$'\r'}"
+        IFS=':' read -r language variant <<< "$configuration"
         if [ "$language" = cpp ]; then
             binary="$(resolve_cpp_binary "bh_cpp_$variant")"
         else
@@ -211,30 +233,29 @@ for language in "${languages[@]}"; do
             run_threads=1
         fi
 
-        for repeat in $(seq 1 "$repeats"); do
-            started_utc="$(date -u +%FT%TZ)"
-            log="$output_dir/logs/${language}_${variant}_${repeat}.log"
-            args=(--input "$input" --particles "$particles" --frames "$frames" --warmup-frames "$warmup_frames" --theta "$theta")
-            if [ "$variant" = v5 ]; then
-                args+=(--threads "$effective_parallel_threads")
-            fi
-            "$binary" "${args[@]}" > "$log" 2>&1
+        started_utc="$(date -u +%FT%TZ)"
+        log="$output_dir/logs/${language}_${variant}_${repeat}.log"
+        args=(--input "$input" --particles "$particles" --frames "$frames" --warmup-frames "$warmup_frames" --theta "$theta")
+        if [ "$variant" = v5 ]; then
+            args+=(--threads "$effective_parallel_threads")
+        fi
+        "$binary" "${args[@]}" > "$log" 2>&1
 
-            tree="$(extract_metric 'Tree construction time' "$log")"
-            force="$(extract_metric 'Force/update time' "$log")"
-            cleanup="$(extract_metric 'Cleanup time' "$log")"
-            total_run="$(extract_metric 'Total measured time' "$log")"
-            if [ -z "$tree" ] || [ -z "$force" ] || [ -z "$cleanup" ] || [ -z "$total_run" ]; then
-                echo "Could not parse timing output from $log" >&2
-                exit 1
-            fi
-            total_per_frame="$(awk -v total="$total_run" -v count="$frames" 'BEGIN {printf "%.9f", total / count}')"
+        tree="$(extract_metric 'Tree construction time' "$log")"
+        force="$(extract_metric 'Force/update time' "$log")"
+        cleanup="$(extract_metric 'Cleanup time' "$log")"
+        total_run="$(extract_metric 'Total measured time' "$log")"
+        if [ -z "$tree" ] || [ -z "$force" ] || [ -z "$cleanup" ] || [ -z "$total_run" ]; then
+            echo "Could not parse timing output from $log" >&2
+            exit 1
+        fi
+        total_per_frame="$(awk -v total="$total_run" -v count="$frames" 'BEGIN {printf "%.9f", total / count}')"
 
-            printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
-                "$run_id" "$started_utc" "$language" "$variant" "$repeat" "$particles" "$frames" \
-                "$warmup_frames" "$theta" "$seed" "$threads" "$run_threads" "$input" "$tree" "$force" \
-                "$cleanup" "$total_per_frame" "$total_run" "$version" "$commit" "$log" >> "$raw"
-        done
+        printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+            "$run_id" "$started_utc" "$language" "$variant" "$repeat" "$order_seed" "$block_position" \
+            "$particles" "$frames" "$warmup_frames" "$theta" "$seed" "$threads" "$run_threads" \
+            "$input" "$tree" "$force" "$cleanup" "$total_per_frame" "$total_run" "$version" \
+            "$commit" "$log" >> "$raw"
     done
 done
 
@@ -250,6 +271,7 @@ done
     --repeats "$repeats" \
     --theta "$theta" \
     --seed "$seed" \
+    --order-seed "$order_seed" \
     --requested-threads "$threads" \
     --effective-parallel-threads "$effective_parallel_threads" \
     --languages "$languages_csv" \

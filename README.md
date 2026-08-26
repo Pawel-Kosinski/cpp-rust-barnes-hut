@@ -45,13 +45,13 @@ The intended SoftwareX scope and limitations are described in:
 
 ## Benchmark data
 
-The v1.1.2 manuscript results are generated as one row per independent process,
+The v1.1.3 manuscript results are generated as one row per independent process,
 with separate raw data, summaries, logs, and environment metadata. The old
 aggregate-only workbook is retained solely for provenance at:
 
     results/historical/Results_data_v1.0_historical.xlsx
 
-It is not used to generate the v1.1.2 manuscript figures.
+It is not used to generate the v1.1.3 manuscript figures.
 
 ## C++ source files
 
@@ -127,17 +127,20 @@ The benchmark protocol is summarized in:
     docs/benchmark_protocol.md
 
 The runner creates a new UTC-dated directory below `results/generated/` and
-refuses to overwrite an existing result directory. It records unambiguous
-per-frame and per-run timings, the input hash and seed, CPU/RAM/OS details,
-compiler versions and commands, and the effective V5 thread count.
+refuses to overwrite an existing result directory. Every repeat is a block in
+which each selected configuration runs once in a deterministically shuffled
+order. The raw data record the order seed and block position together with
+unambiguous timings, the input hash and seed, CPU/RAM/OS and power metadata,
+process affinity, compiler versions, and the effective V5 thread count.
 
 Reproduce all three manuscript experiments and plots with:
 
-    bash scripts/reproduce_all_figures.sh results/manuscript/v1.1.2
+    bash scripts/reproduce_all_figures.sh results/reproduced/$(date -u +%Y%m%dT%H%M%SZ)
 
 The full 1M-5M scaling experiment is intentionally a long-running workload.
-Plotting requires Python 3 and Matplotlib. Numerical correctness can be checked
-independently with `bash scripts/numerical_regression.sh`.
+Plotting requires Python 3 and the pinned Matplotlib version from
+`requirements.txt`. Numerical correctness can be checked independently with
+`bash scripts/numerical_regression.sh`.
 
 ## Software metadata
 
@@ -160,7 +163,8 @@ This project is distributed under the MIT License. See:
 ## Citation
 
 If you use this software, please cite the associated SoftwareX article and the
-archived v1.1.2 software release:
+software release matching the results. The latest public archive before the
+v1.1.3 release is v1.1.2:
 
     https://doi.org/10.5281/zenodo.22112969
 

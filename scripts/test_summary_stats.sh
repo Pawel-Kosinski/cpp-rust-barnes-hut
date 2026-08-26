@@ -21,9 +21,9 @@ fi
 raw="$tmp_dir/raw_runs.csv"
 summary="$tmp_dir/summary.csv"
 printf '%s\n' \
-    'run_id,started_utc,language,variant,repeat,particles,measured_frames,warmup_frames,theta,seed,requested_threads,effective_threads,input,tree_ms_per_frame,force_update_ms_per_frame,cleanup_ms_per_frame,total_ms_per_frame,total_run_ms,version,commit,log' \
-    'test,2026-01-01T00:00:00Z,cpp,v1,1,8,1,0,0.3,1337,0,1,input.txt,1,10,0.5,11.5,11.5,1.1.2,commit,run1.log' \
-    'test,2026-01-01T00:00:01Z,cpp,v1,2,8,1,0,0.3,1337,0,1,input.txt,3,14,1.5,18.5,18.5,1.1.2,commit,run2.log' > "$raw"
+    'run_id,started_utc,language,variant,repeat,order_seed,block_position,particles,measured_frames,warmup_frames,theta,seed,requested_threads,effective_threads,input,tree_ms_per_frame,force_update_ms_per_frame,cleanup_ms_per_frame,total_ms_per_frame,total_run_ms,version,commit,log' \
+    'test,2026-01-01T00:00:00Z,cpp,v1,1,20260826,1,8,1,0,0.3,1337,0,1,input.txt,1,10,0.5,11.5,11.5,1.1.3,commit,run1.log' \
+    'test,2026-01-01T00:00:01Z,cpp,v1,2,20260826,1,8,1,0,0.3,1337,0,1,input.txt,3,14,1.5,18.5,18.5,1.1.3,commit,run2.log' > "$raw"
 
 "$python_cmd" scripts/summarize_results.py "$raw" "$summary"
 

@@ -26,15 +26,20 @@ bash scripts/run_benchmarks.sh \
     --particles 8 \
     --frames 1 \
     --warmup-frames 1 \
-    --repeats 1 \
+    --repeats 2 \
     --theta 0.3 \
     --threads 2 \
     --languages cpp,rust \
     --variants v3 \
     --output-dir results/archive-runner-test
 
-test "$(wc -l < results/archive-runner-test/raw_runs.csv)" -eq 3
+test "$(wc -l < results/archive-runner-test/raw_runs.csv)" -eq 5
 test "$(wc -l < results/archive-runner-test/summary.csv)" -eq 3
 grep -q '"commit": "not-applicable-source-archive"' results/archive-runner-test/environment.json
+grep -q '"execution_order": "blocked deterministic shuffle' results/archive-runner-test/environment.json
+
+first_order="$(awk -F, 'NR > 1 && $5 == 1 {print $3 ":" $4}' results/archive-runner-test/raw_runs.csv | paste -sd, -)"
+second_order="$(awk -F, 'NR > 1 && $5 == 2 {print $3 ":" $4}' results/archive-runner-test/raw_runs.csv | paste -sd, -)"
+test "$first_order" != "$second_order"
 
 echo "Standalone archive runner test passed."

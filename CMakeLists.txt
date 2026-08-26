@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(BHBenchCR LANGUAGES CXX)
 
+include(CheckIPOSupported)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -26,6 +28,15 @@ foreach(target IN LISTS BHBENCH_TARGETS)
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 endforeach()
+
+check_ipo_supported(RESULT BHBENCH_IPO_SUPPORTED OUTPUT BHBENCH_IPO_ERROR)
+if(BHBENCH_IPO_SUPPORTED)
+    foreach(target IN LISTS BHBENCH_TARGETS)
+        set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+    endforeach()
+else()
+    message(WARNING "Interprocedural optimization is unavailable: ${BHBENCH_IPO_ERROR}")
+endif()
 
 find_package(OpenMP REQUIRED)
 target_link_libraries(bh_cpp_v5 PRIVATE OpenMP::OpenMP_CXX)

@@ -10,6 +10,12 @@
 constexpr float PI = 3.14159265359f;
 constexpr float G = 1.0f;
 
+float unitInterval(std::mt19937& rng)
+{
+    constexpr double scale = 1.0 / 4294967296.0;
+    return static_cast<float>(static_cast<double>(rng()) * scale);
+}
+
 int main(int argc, char** argv)
 {
     std::size_t numParticles = 50000;
@@ -29,7 +35,6 @@ int main(int argc, char** argv)
     }
 
     std::mt19937 rng(seed);
-    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
     std::ofstream outFile(outputFile);
     if (!outFile) {
@@ -54,12 +59,12 @@ int main(int argc, char** argv)
         // Correct tail truncation by rejection sampling.
         // Instead of clamping particles to the boundary, sample until accepted.
         do {
-            float u = dist(rng);
+            float u = unitInterval(rng);
             u = std::min(u, 0.999f);
             r = a * std::sqrt(u / (1.0f - u));
         } while (r > maxRadius);
 
-        const float theta = dist(rng) * 2.0f * PI;
+        const float theta = unitInterval(rng) * 2.0f * PI;
 
         const float posX = centerX + r * std::cos(theta);
         const float posY = centerY + r * std::sin(theta);
@@ -72,7 +77,7 @@ int main(int argc, char** argv)
         const float vCirc = std::sqrt((G * massEnclosed) / (r + 0.1f));
 
         // Small perturbation used to break perfect symmetry (+/- 15%).
-        const float perturbation = 0.85f + dist(rng) * 0.30f;
+        const float perturbation = 0.85f + unitInterval(rng) * 0.30f;
         const float v = vCirc * perturbation;
 
         const float velocityX = -v * std::sin(theta);
