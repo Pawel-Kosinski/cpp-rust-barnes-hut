@@ -299,7 +299,7 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         return;
     }
 
-    for _j in 0..options.frames {
+    for frame in 0..options.total_frames() {
 
         let mut start_time = Instant::now();
 
@@ -346,12 +346,27 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
 
         computeMassDistribution(0, &mut arena, &particles);
         threadTree(0, usize::MAX, &mut arena);
-        total_tree_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
+        let tree_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
+        if frame >= options.warmup_frames {
+            total_tree_time_ms += tree_time_ms;
+        }
 
         start_time = Instant::now();
         for i in 0..particles.len()
         {
             calculateForces(i, &mut arena, &mut particles);
+        }
+
+        if frame == options.warmup_frames {
+            if let Some(path) = options.dump_forces.as_deref() {
+                if let Err(message) = benchmark_options::write_forces(
+                    path,
+                    particles.iter().map(|particle| (particle.acc_x, particle.acc_y)),
+                ) {
+                    eprintln!("{message}");
+                    return;
+                }
+            }
         }
 
 
@@ -368,7 +383,10 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
             p.acc_x = 0.0;
             p.acc_y = 0.0;
         }
-        total_force_time_ms += start_time.elapsed().as_secs_f64() * 1000.0;
+        let force_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
+        if frame >= options.warmup_frames {
+            total_force_time_ms += force_time_ms;
+        }
 
 
         // if j == 0 || j == FRAMES - 1 {
@@ -380,9 +398,10 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         // }
 }
 
-    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
-    println!("Total simulation time: {:.4} ms", (total_force_time_ms + total_tree_time_ms));
     println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));
+    println!("Force/update time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
+    println!("Cleanup time: 0.0000 ms / frame");
+    println!("Total measured time: {:.4} ms", total_force_time_ms + total_tree_time_ms);
 
     // let ref_path = Path::new("reference_1000k.txt");
     // match File::open(&ref_path) {

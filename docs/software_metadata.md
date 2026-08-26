@@ -4,11 +4,11 @@
 
 BHBench-CR
 
-## Archived release
+## Prepared release
 
-- Version: 1.1.1
-- DOI: https://doi.org/10.5281/zenodo.22102924
-- GitHub release: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.1
+- Version: 1.1.2
+- GitHub release target: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.2
+- Zenodo DOI: assigned when the reviewed v1.1.2 tag is archived
 
 ## Purpose
 
@@ -28,7 +28,7 @@ BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body s
 
 - C++ solver variants in `cpp/`
 - Rust solver variants in `nbody_rust/src/bin/`
-- Benchmark result workbook in `results/`
+- Raw publication data, summaries, logs, and environment metadata in `results/`
 - Documentation in `docs/`
 - Build helper scripts in `scripts/`
 

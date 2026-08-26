@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     if (!parseBenchmarkOptions(argc, argv, options)) return argc > 1 ? 1 : 0;
 
     Timer timer;
-    float time = 0.0f;
+    double totalForceTime = 0.0;
     std::vector<Particle> particles;
 
     std::ifstream inFile(options.input);
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
     inFile.close();
     if (!validateParticleCount(options, particles.size())) return 1;
 
-    for (int frame = 0; frame < options.frames; ++frame)
+    for (int frame = 0; frame < options.totalFrames(); ++frame)
     {
         if (frame == 0) {
             size_t particlesMem = particles.capacity() * sizeof(Particle);
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
             particles[i].accX += accX;
             particles[i].accY += accY;
         }
-        time += timer.stopTime();
+        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles)) return 1;
         for (auto& particle : particles)
         {
             particle.velocityX += particle.accX * TIME_STEP;
@@ -133,7 +133,9 @@ int main(int argc, char** argv)
             particle.accX = 0.0f;
             particle.accY = 0.0f;
         }
-        if (frame == 0 || frame == options.frames - 1) {
+        const double forceTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalForceTime += forceTime;
+        if (frame == options.warmupFrames || frame == options.totalFrames() - 1) {
             auto metrics = calculatePhysicsDiagnostics(particles);
             std::cout << "Frame " << frame << ":\n";
             std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
@@ -141,16 +143,10 @@ int main(int argc, char** argv)
             std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         }
     }
-    std::cout << "Force calculation time:  " << (time / options.frames) << " ms / frame\n";
-    std::cout << "Total simulation time: " << (time) << " ms\n";
-
-    std::ofstream outFile("reference.txt");
-    outFile << std::fixed << std::setprecision(6);
-    for (const auto& p : particles)
-    {
-        outFile << p.posX << " " << p.posY << "\n";
-    }
-    outFile.close();
-    std::cout << "Saved reference positions to file reference.txt\n";
+    std::cout << std::fixed << std::setprecision(6);
+    std::cout << "Tree construction time: 0.000000 ms / frame\n";
+    std::cout << "Force/update time: " << (totalForceTime / options.frames) << " ms / frame\n";
+    std::cout << "Cleanup time: 0.000000 ms / frame\n";
+    std::cout << "Total measured time: " << totalForceTime << " ms\n";
     return 0;
 }

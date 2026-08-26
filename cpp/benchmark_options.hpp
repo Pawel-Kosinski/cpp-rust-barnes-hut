@@ -2,20 +2,29 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 
 struct BenchmarkOptions {
     std::string input = "start.txt";
+    std::string dumpForces;
     std::size_t particles = 0;
     int frames = 10;
+    int warmupFrames = 0;
     float theta = 0.3f;
     int threads = 0;
+
+    int totalFrames() const {
+        return warmupFrames + frames;
+    }
 };
 
 inline void printBenchmarkUsage(const char* program) {
     std::cout << "Usage: " << program
-              << " [--input FILE] [--particles N] [--frames N] [--theta VALUE] [--threads N]\n";
+              << " [--input FILE] [--particles N] [--frames N] [--warmup-frames N]"
+              << " [--theta VALUE] [--threads N] [--dump-forces FILE]\n";
 }
 
 inline bool parseBenchmarkOptions(int argc, char** argv, BenchmarkOptions& options) {
@@ -34,10 +43,14 @@ inline bool parseBenchmarkOptions(int argc, char** argv, BenchmarkOptions& optio
         try {
             if (argument == "--input") {
                 options.input = value;
+            } else if (argument == "--dump-forces") {
+                options.dumpForces = value;
             } else if (argument == "--particles") {
                 options.particles = static_cast<std::size_t>(std::stoull(value));
             } else if (argument == "--frames") {
                 options.frames = std::stoi(value);
+            } else if (argument == "--warmup-frames") {
+                options.warmupFrames = std::stoi(value);
             } else if (argument == "--theta") {
                 options.theta = std::stof(value);
             } else if (argument == "--threads") {
@@ -52,9 +65,27 @@ inline bool parseBenchmarkOptions(int argc, char** argv, BenchmarkOptions& optio
         }
     }
 
-    if (options.frames <= 0 || options.theta <= 0.0f || options.threads < 0) {
-        std::cerr << "frames and theta must be positive; threads cannot be negative.\n";
+    if (options.frames <= 0 || options.warmupFrames < 0 || options.theta <= 0.0f || options.threads < 0) {
+        std::cerr << "frames and theta must be positive; warm-up frames and threads cannot be negative.\n";
         return false;
+    }
+    return true;
+}
+
+template <typename ParticleRange>
+bool writeForces(const std::string& path, const ParticleRange& particles) {
+    if (path.empty()) return true;
+
+    std::ofstream output(path);
+    if (!output) {
+        std::cerr << "Could not write force snapshot: " << path << "\n";
+        return false;
+    }
+
+    output << "index,acc_x,acc_y\n" << std::setprecision(9);
+    std::size_t index = 0;
+    for (const auto& particle : particles) {
+        output << index++ << ',' << particle.accX << ',' << particle.accY << '\n';
     }
     return true;
 }

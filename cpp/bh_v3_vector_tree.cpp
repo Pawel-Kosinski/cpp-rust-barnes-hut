@@ -11,6 +11,7 @@
 constexpr float G = 1.0f;
 constexpr float TIME_STEP = 0.016f;
 float THETA = 0.3f;
+using Node = NodeV3;
 
 struct Particle
 {
@@ -196,8 +197,8 @@ int mainMain(const BenchmarkOptions& options)
     std::vector<Particle> particles;
     std::vector<Node> treeArena;
     Timer timer;
-    float totalTreeBuildTime = 0.0f;
-    float totalForceTime = 0.0f;
+    double totalTreeBuildTime = 0.0;
+    double totalForceTime = 0.0;
 
     std::ifstream inFile(options.input);
     if (!inFile)
@@ -219,7 +220,7 @@ int mainMain(const BenchmarkOptions& options)
 
     //treeArena.reserve(particles.size() * 10);
 
-    for (int frame = 0; frame < options.frames; ++frame)
+    for (int frame = 0; frame < options.totalFrames(); ++frame)
     {
         timer.start(); 
         float minX = particles[0].posX, maxX = particles[0].posX;
@@ -246,9 +247,9 @@ int mainMain(const BenchmarkOptions& options)
         root.halfSize = maxHalfSize;
         treeArena.push_back(root);
 
-        for (int i = 0; i < particles.size(); ++i)
+        for (std::size_t i = 0; i < particles.size(); ++i)
         {
-            insertParticle(0, i, treeArena, particles);
+            insertParticle(0, static_cast<int>(i), treeArena, particles);
         }
 
         // if (frame == 0) {
@@ -266,13 +267,16 @@ int mainMain(const BenchmarkOptions& options)
         // }
 
         computeMassDistribution(0, treeArena, particles);
-        totalTreeBuildTime += timer.stopTime();
+        const double treeTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalTreeBuildTime += treeTime;
 
         timer.start();
-        for (int i = 0; i < particles.size(); ++i)
+        for (std::size_t i = 0; i < particles.size(); ++i)
         {
-            calculateForcesRecursive(i, 0, particles, treeArena);
+            calculateForcesRecursive(static_cast<int>(i), 0, particles, treeArena);
         }
+
+        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles)) return 1;
 
         for (auto& particle : particles)
         {
@@ -284,7 +288,8 @@ int mainMain(const BenchmarkOptions& options)
             particle.accX = 0.0f;
             particle.accY = 0.0f;
         }
-        totalForceTime += timer.stopTime();
+        const double forceTime = timer.stopTime();
+        if (frame >= options.warmupFrames) totalForceTime += forceTime;
         // if (frame == 0 or frame == FRAMES - 1) {
         //     auto metrics = calculatePhysicsDiagnostics(particles);
         //     std::cout << "Frame " << frame << ":\n";
@@ -293,9 +298,11 @@ int mainMain(const BenchmarkOptions& options)
         //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         // }
     }
+    std::cout << std::fixed << std::setprecision(6);
     std::cout << "Tree construction time: " << (totalTreeBuildTime / options.frames) << " ms / frame\n";
-    std::cout << "Force calculation time:  " << (totalForceTime / options.frames) << " ms / frame\n";
-    std::cout << "Total simulation time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
+    std::cout << "Force/update time: " << (totalForceTime / options.frames) << " ms / frame\n";
+    std::cout << "Cleanup time: 0.000000 ms / frame\n";
+    std::cout << "Total measured time: " << (totalTreeBuildTime + totalForceTime) << " ms\n";
     // std::ifstream outFile("reference_5000k.txt");
     // if (!outFile) 
     // {

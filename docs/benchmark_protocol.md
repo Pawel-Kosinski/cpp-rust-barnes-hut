@@ -41,15 +41,19 @@ The manuscript reports force-based error metrics, including:
 
 ## Timing measurements
 
-The benchmark separates the main runtime components:
+All C++ timers use `std::chrono::steady_clock`; Rust uses `Instant`. Each process
+executes the requested warm-up frames before timing values are accumulated. The
+measured region is then reported as:
 
-- tree construction time,
-- force-evaluation time,
-- total execution time where applicable.
+- `tree_ms_per_frame`: tree construction and arena reset,
+- `force_update_ms_per_frame`: force evaluation and the common state update,
+- `cleanup_ms_per_frame`: explicit recursive tree destruction in V2,
+- `total_ms_per_frame`: the sum of the measured phases per frame,
+- `total_run_ms`: the sum of the measured phases across all measured frames.
 
-Timing uses wall-clock milliseconds. Processor timestamp-counter values are not
-reported because they are not synchronised CPU-cycle measurements across cores
-or platforms.
+Input parsing, process startup, diagnostics, and warm-up frames are outside these
+values. Processor timestamp-counter values are not reported because they are not
+synchronised CPU-cycle measurements across cores or platforms.
 
 ## Memory measurements
 
@@ -65,15 +69,39 @@ The Rust implementation uses release-mode builds. The parallel force-evaluation 
 
 ## Result data
 
-The result workbook used for the manuscript is stored in:
+`scripts/run_benchmarks.sh` writes one raw CSV row for every independent process.
+Each row includes language, variant, particle count, measured and warm-up frames,
+theta, seed, requested and effective thread counts, phase timings, total timings,
+source version and commit, and the corresponding log path. `summary.csv` stores
+numeric means and sample standard deviations in separate columns.
 
-    results/Results_data.xlsx
+`environment.json` records the input SHA-256 hash, CPU model, physical and
+logical cores, physical memory, OS, compiler and tool versions, C++ compile
+commands/flags, the effective parallel thread count, and all protocol parameters.
+The runner uses an archive-safe source identifier when `.git` is absent.
 
-`Results_data.xlsx` is an archived historical workbook. Reproducible runs are
-written as raw CSV, summary CSV, logs, and environment metadata by
-`scripts/run_benchmarks.sh`. Summary values are means and sample standard
-deviations across ten independent process runs by default.
+The old aggregate workbook is retained only as
+`results/historical/Results_data_v1.0_historical.xlsx`; it is not an input to the
+v1.1.2 manuscript figures.
+
+## Manuscript experiments
+
+The release provides one script per figure:
+
+- `reproduce_fig1.sh`: V3 timing and direct-force RMS/p95 over a theta sweep,
+- `reproduce_fig2.sh`: V2-V5 at N=100,000,
+- `reproduce_fig3.sh`: V3-V5 at N=1M, 2M, and 5M,
+- `plot_manuscript_figures.py`: figures generated only from the resulting CSVs.
+
+Compared points within an experiment use the same seed, warm-up count, measured
+frame count, repeat count, and thread policy. Defaults are embedded in each
+script and are also written into the result metadata.
 
 ## Reproducibility notes
 
-The exact large-scale timings depend on hardware, compiler version, operating system, and runtime configuration. The repository therefore provides both the source code and the result workbook used in the manuscript.
+The exact timings depend on hardware, compiler version, operating system, and
+runtime configuration. Comparisons are therefore valid within one recorded
+environment; results from different workstations must not be merged into one
+series. Force snapshots and `scripts/numerical_regression.sh` provide a separate
+deterministic correctness check for V2-V5 against direct summation in both
+languages.

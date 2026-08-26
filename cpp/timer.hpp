@@ -2,18 +2,18 @@
 
 struct Timer
 {
-    std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
+    using Clock = std::chrono::steady_clock;
+    std::chrono::time_point<Clock> start_time;
 
     void start() 
     {
-        start_time = std::chrono::high_resolution_clock::now();
+        start_time = Clock::now();
     }
 
-    float stopTime() 
+    double stopTime()
     {
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-        return duration.count() / 1000.0f; 
+        const auto end_time = Clock::now();
+        return std::chrono::duration<double, std::milli>(end_time - start_time).count();
     }
 
 };

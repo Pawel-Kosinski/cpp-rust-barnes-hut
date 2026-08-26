@@ -17,4 +17,4 @@ The software is intentionally scoped as a benchmark and research/teaching codeba
 - a Fast Multipole Method implementation,
 - a full physical modelling package.
 
-The benchmark focuses on implementation trade-offs, memory layout, traversal structure, and parallel runtime effects under a controlled workload. The accompanying result workbook provides the benchmark data used in the manuscript.
+The benchmark focuses on implementation trade-offs, memory layout, traversal structure, and parallel runtime effects under a controlled workload. The manuscript figures are generated from one-process-per-row raw CSV data, with the exact protocol and execution environment stored alongside each experiment.

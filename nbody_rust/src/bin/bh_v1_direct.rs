@@ -1,6 +1,6 @@
 use std::time::Instant;
 use std::fs::File;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead};
 use std::path::Path;
 
 const TIME_STEP: f32 = 0.016;
@@ -103,7 +103,7 @@ fn main() {
 
     let mut total_force_time_ms = 0.0;
 
-    for j in 0..options.frames {
+    for frame in 0..options.total_frames() {
 
         let start_time = Instant::now();
 
@@ -121,6 +121,9 @@ fn main() {
                 let dx = particle_b.pos_x - particle_a_pos_x;
                 let dy = particle_b.pos_y - particle_a_pos_y;
                 let dist_sq = dx * dx + dy * dy;
+                if dist_sq < 1e-5 {
+                    continue;
+                }
 
                 let distance = dist_sq.sqrt();
 
@@ -133,13 +136,16 @@ fn main() {
             particles[i].acc_y = acc_y;
         }
 
-        let end_time = start_time.elapsed();
-
-        if j == 0 {
-            let particles_mem: usize = particles.capacity() * std::mem::size_of::<Particle>();
-            let total_app_mem_mb = (particles_mem) as f64 / (1024.0 * 1024.0);
-            println!("Algorithm memory usage: {} MB", total_app_mem_mb);
-            println!("Size of Particle: {:.6} bytes", std::mem::size_of::<Particle>());
+        if frame == options.warmup_frames {
+            if let Some(path) = options.dump_forces.as_deref() {
+                if let Err(message) = benchmark_options::write_forces(
+                    path,
+                    particles.iter().map(|particle| (particle.acc_x, particle.acc_y)),
+                ) {
+                    eprintln!("{message}");
+                    return;
+                }
+            }
         }
 
         // Euler integration (position update)
@@ -152,23 +158,22 @@ fn main() {
             particles[i].acc_x = 0.0;
             particles[i].acc_y = 0.0;
         }
-        total_force_time_ms += end_time.as_secs_f64() * 1000.0;
+        let force_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
+        if frame >= options.warmup_frames {
+            total_force_time_ms += force_time_ms;
+        }
 
-        if j == 0 || j == options.frames - 1 {
+        if frame == options.warmup_frames || frame == options.total_frames() - 1 {
             let metrics = calculate_physics_diagnostics(&particles);
-            println!("Frame {}:", j);
+            println!("Frame {}:", frame);
             println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
             println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
             println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
         }
     }
 
-    let out_file = std::fs::File::create("reference_50k.txt").unwrap();
-    let mut writer = std::io::BufWriter::new(out_file);
-    for p in &particles {
-        writeln!(writer, "{:.6} {:.6}", p.pos_x, p.pos_y).unwrap();
-    }
-
-    println!("Force calculation time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
-    println!("Total simulation time: {:.4} ms", total_force_time_ms);
+    println!("Tree construction time: 0.0000 ms / frame");
+    println!("Force/update time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
+    println!("Cleanup time: 0.0000 ms / frame");
+    println!("Total measured time: {:.4} ms", total_force_time_ms);
 }

@@ -19,8 +19,8 @@ The software is not intended to be a production astrophysical simulator or a sta
 - C++ parallel implementation using OpenMP.
 - Rust parallel implementation using Rayon.
 - Radius-based multipole acceptance criterion.
-- Force-based accuracy metrics against direct summation.
-- Benchmark data used in the associated manuscript.
+- Force snapshots and RMS/p95 accuracy regression against direct summation.
+- One-process-per-row raw data and scripts that reproduce all manuscript figures.
 
 ## Repository structure
 
@@ -28,7 +28,7 @@ The software is not intended to be a production astrophysical simulator or a sta
     nbody_rust/           Rust implementations
     docs/                 Documentation of variants and reproduction notes
     scripts/              Build, benchmark, and plotting scripts
-    results/              Archived workbook and generated raw results
+    results/              Publication raw data and a clearly marked historical workbook
     CMakeLists.txt        CMake build configuration for C++
     CITATION.cff          Citation metadata
     LICENSE               MIT license
@@ -45,9 +45,13 @@ The intended SoftwareX scope and limitations are described in:
 
 ## Benchmark data
 
-The benchmark data used to generate the manuscript figures and tables are provided in:
+The v1.1.2 manuscript results are generated as one row per independent process,
+with separate raw data, summaries, logs, and environment metadata. The old
+aggregate-only workbook is retained solely for provenance at:
 
-    results/Results_data.xlsx
+    results/historical/Results_data_v1.0_historical.xlsx
+
+It is not used to generate the revised manuscript figures.
 
 ## C++ source files
 
@@ -103,27 +107,37 @@ The current binaries are:
     bh_v4_threaded_tree.rs
     bh_v5_parallel_force.rs
 
-Every solver accepts the same `--input`, `--particles`, and `--frames` options.
-V5 also accepts `--threads N`.
+Every solver accepts the same `--input`, `--particles`, `--frames`,
+`--warmup-frames`, and `--dump-forces` options. V5 also accepts `--threads N`.
 
     cd nbody_rust
     cargo run --release --bin bh_v1_direct -- --input ../data/start_1000.txt --particles 1000 --frames 5
 
 ## Reproducing results
 
-Generate a deterministic input and run the complete 10-repeat benchmark:
+Generate a deterministic input and run a selective 10-repeat benchmark:
 
     bash scripts/generate_input.sh 1000 data/start_1000.txt 1337
-    bash scripts/run_benchmarks.sh --input data/start_1000.txt --particles 1000 --frames 5 --repeats 10
-    python scripts/plot_results.py results/generated/summary.csv results/generated
+    bash scripts/run_benchmarks.sh --input data/start_1000.txt --particles 1000 \
+      --frames 5 --warmup-frames 1 --repeats 10 \
+      --languages cpp,rust --variants v2,v3,v4,v5
 
 The benchmark protocol is summarized in:
 
     docs/benchmark_protocol.md
 
-The runner writes raw measurements, summary statistics, logs, and environment
-metadata to `results/generated/`. Historical workbook values are retained as an
-archive and should not be treated as a replacement for raw run data.
+The runner creates a new UTC-dated directory below `results/generated/` and
+refuses to overwrite an existing result directory. It records unambiguous
+per-frame and per-run timings, the input hash and seed, CPU/RAM/OS details,
+compiler versions and commands, and the effective V5 thread count.
+
+Reproduce all three manuscript experiments and plots with:
+
+    bash scripts/reproduce_all_figures.sh results/manuscript/v1.1.2
+
+The full 1M-5M scaling experiment is intentionally a long-running workload.
+Plotting requires Python 3 and Matplotlib. Numerical correctness can be checked
+independently with `bash scripts/numerical_regression.sh`.
 
 ## Software metadata
 
@@ -145,7 +159,8 @@ This project is distributed under the MIT License. See:
 
 ## Citation
 
-If you use this software, please cite the associated SoftwareX article and the archived v1.1.1 release:
+If you use this software, please cite the associated SoftwareX article and the
+archived software release. The previous v1.1.1 release is available at:
 
     https://doi.org/10.5281/zenodo.22102924
 

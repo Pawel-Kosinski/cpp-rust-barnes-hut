@@ -6,7 +6,9 @@ cd "$repo_root"
 
 build_dir="${BUILD_DIR:-build}"
 rust_target_dir="${CARGO_TARGET_DIR:-nbody_rust/target}"
-bash scripts/build_all.sh
+if [ "${1:-}" != "--no-build" ]; then
+    bash scripts/build_all.sh
+fi
 for binary in "$build_dir"/bh_cpp_v{1,2,3,4,5}; do
     "$binary" --input data/smoke_input.txt --particles 8 --frames 1 --theta 0.3 --threads 2 > /dev/null
 done
