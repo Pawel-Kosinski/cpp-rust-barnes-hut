@@ -87,19 +87,31 @@ def plot_figure_1(root: Path, output: Path) -> None:
         )
         theta_values = [float(row["theta"]) for row in language_rows]
         for metric in ("rms_relative", "p95_relative"):
+            is_cpp = language == "cpp"
             axes[1].plot(
                 theta_values,
                 [100.0 * float(row[metric]) for row in language_rows],
                 line_styles[metric],
                 marker="o",
-                linewidth=2,
+                markersize=7 if is_cpp else 5,
+                linewidth=4 if is_cpp else 2,
                 color=COLORS[language],
+                zorder=2 if is_cpp else 3,
                 label=f"{'C++' if language == 'cpp' else 'Rust'} {metric_labels[metric]}",
             )
     axes[1].set_xlabel(r"Opening threshold $\theta$")
     axes[1].set_ylabel("Relative force error (%)")
     axes[1].set_title("Accuracy against direct summation")
     axes[1].legend(frameon=False, ncol=2)
+    axes[1].text(
+        0.54,
+        0.04,
+        "C++ and Rust curves overlap",
+        transform=axes[1].transAxes,
+        fontsize=9,
+        color="#525252",
+        ha="center",
+    )
 
     figure.tight_layout()
     figure.savefig(output / "fig1_theta_accuracy.png", dpi=220, bbox_inches="tight")

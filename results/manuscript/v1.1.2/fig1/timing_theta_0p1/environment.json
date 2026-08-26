@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-08-26T07:53:14.106606+00:00",
+  "source": {
+    "version": "1.1.2",
+    "commit": "c270e2c0ecc91c1153ec0fc4d0a440ff1e38dcb0"
+  },
+  "system": {
+    "os": "Windows-10-10.0.26200-SP0",
+    "system": "Windows",
+    "release": "10",
+    "machine": "AMD64",
+    "cpu_model": "AMD Ryzen 7 5800X3D 8-Core Processor",
+    "physical_cores": 8,
+    "logical_cores": 16,
+    "physical_memory_bytes": 68624957440
+  },
+  "toolchain": {
+    "cxx": "c++.EXE (Rev3, Built by MSYS2 project) 16.2.0",
+    "cmake": "cmake version 4.4.2",
+    "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+    "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "python": "3.11.4",
+    "cmake_build_type": "Release",
+    "cargo_profile": "release with lto=true and codegen-units=1",
+    "cxxflags_environment": "",
+    "compile_commands": [
+      "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -fopenmp -o CMakeFiles\\bh_cpp_v5.dir\\cpp\\bh_v5_parallel_force.cpp.obj -c F:\\Documents\\Artykuły\\2026\\Kosiński\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v5_parallel_force.cpp",
+      "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v1.dir\\cpp\\bh_v1_direct.cpp.obj -c F:\\Documents\\Artykuły\\2026\\Kosiński\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v1_direct.cpp",
+      "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v2.dir\\cpp\\bh_v2_pointer_tree.cpp.obj -c F:\\Documents\\Artykuły\\2026\\Kosiński\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v2_pointer_tree.cpp",
+      "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v3.dir\\cpp\\bh_v3_vector_tree.cpp.obj -c F:\\Documents\\Artykuły\\2026\\Kosiński\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v3_vector_tree.cpp",
+      "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v4.dir\\cpp\\bh_v4_threaded_tree.cpp.obj -c F:\\Documents\\Artykuły\\2026\\Kosiński\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v4_threaded_tree.cpp",
+      "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_generator.dir\\cpp\\generator.cpp.obj -c F:\\Documents\\Artykuły\\2026\\Kosiński\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\generator.cpp"
+    ]
+  },
+  "input": {
+    "path": "results\\manuscript\\v1.1.2\\fig1\\input_10000_seed1337.txt",
+    "sha256": "963cf4f2e1e5a94ac41ed6e4dd31762d91a695a0b4baf46f96d535195dbea543",
+    "particles": 10000,
+    "seed": 1337
+  },
+  "protocol": {
+    "measured_frames": 3,
+    "warmup_frames": 1,
+    "independent_process_repeats": 5,
+    "theta": 0.1,
+    "requested_threads": 16,
+    "effective_parallel_threads": 16,
+    "languages": [
+      "cpp",
+      "rust"
+    ],
+    "variants": [
+      "v3"
+    ],
+    "timing_clock": "steady/monotonic wall clock"
+  }
+}

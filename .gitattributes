@@ -11,6 +11,8 @@
 *.lock text eol=lf
 *.cff text eol=lf
 *.json text eol=lf
+*.csv text eol=lf
+*.log text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 CMakeLists.txt text eol=lf

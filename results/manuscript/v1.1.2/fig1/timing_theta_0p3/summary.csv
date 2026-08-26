@@ -1,0 +1,3 @@
+language,variant,particles,measured_frames,warmup_frames,theta,seed,effective_threads,runs,tree_ms_per_frame_mean,tree_ms_per_frame_sd,force_update_ms_per_frame_mean,force_update_ms_per_frame_sd,cleanup_ms_per_frame_mean,cleanup_ms_per_frame_sd,total_ms_per_frame_mean,total_ms_per_frame_sd,total_run_ms_mean,total_run_ms_sd
+cpp,v3,10000,3,1,0.3,1337,1,5,1.214300000,0.026443328,28.639093200,0.344639265,0.000000000,0.000000000,29.853393333,0.352149775,89.560180000,1.056449325
+rust,v3,10000,3,1,0.3,1337,1,5,1.300000000,0.029919809,31.687400000,0.413350311,0.000000000,0.000000000,32.987440000,0.429592988,98.962320000,1.288778964
