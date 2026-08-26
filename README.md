@@ -51,7 +51,7 @@ aggregate-only workbook is retained solely for provenance at:
 
     results/historical/Results_data_v1.0_historical.xlsx
 
-It is not used to generate the revised manuscript figures.
+It is not used to generate the v1.1.2 manuscript figures.
 
 ## C++ source files
 

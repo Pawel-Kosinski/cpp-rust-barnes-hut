@@ -8,7 +8,7 @@ BHBench-CR
 
 - Version: 1.1.2
 - GitHub release target: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.2
-- Zenodo DOI: assigned when the reviewed v1.1.2 tag is archived
+- Zenodo DOI: assigned when the v1.1.2 tag is archived
 
 ## Purpose
 
