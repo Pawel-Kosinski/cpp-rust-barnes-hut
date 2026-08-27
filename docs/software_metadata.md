@@ -6,10 +6,10 @@ BHBench-CR
 
 ## Prepared release
 
-- Version: 1.1.4
-- GitHub release target: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.4
+- Version: 1.1.5
+- GitHub release target: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.5
 - Benchmark data: v1.1.3 campaign generated from commit `ab17547228b0f7440793c9014bfda41d076a239e`
-- Zenodo archive: https://doi.org/10.5281/zenodo.22126401
+- Zenodo archive: https://doi.org/10.5281/zenodo.22134139
 
 ## Purpose
 

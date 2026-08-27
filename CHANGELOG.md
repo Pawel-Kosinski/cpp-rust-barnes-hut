@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.5 - 2026-08-27
+
+- Synchronized version-specific DOI, release date, citation, package, and repository metadata.
+- Aligned the archived source release with the public GitHub tag and Zenodo record.
+- Preserved the v1.1.3 benchmark measurements, publication inputs, solver sources, and figures unchanged.
+
 ## 1.1.4 - 2026-08-27
 
 - Corrected the parallel force-evaluation speedup to compare serial V4 with parallel V5.
