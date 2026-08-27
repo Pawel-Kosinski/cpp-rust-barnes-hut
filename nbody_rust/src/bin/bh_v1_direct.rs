@@ -166,9 +166,9 @@ fn main() {
         if frame == options.warmup_frames || frame == options.total_frames() - 1 {
             let metrics = calculate_physics_diagnostics(&particles);
             println!("Frame {}:", frame);
-            println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
-            println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
-            println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
+            println!("Momentum ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
+            println!("Kinetic energy {:.6}", metrics.total_kinetic_energy);
+            println!("Center of mass ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
         }
     }
 

@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import ctypes
 import hashlib
+import importlib.metadata
 import json
+import locale
 import os
 import platform
 import re
@@ -23,11 +25,15 @@ def command_version(command: list[str]) -> str:
         return "not available"
     try:
         result = subprocess.run(
-            [executable, *command[1:]], check=False, capture_output=True, text=True, timeout=10
+            [executable, *command[1:]], check=False, capture_output=True, timeout=10
         )
     except (OSError, subprocess.SubprocessError) as error:
         return f"unavailable: {error}"
-    output = result.stdout.strip() or result.stderr.strip()
+    raw_output = result.stdout.strip() or result.stderr.strip()
+    try:
+        output = raw_output.decode("utf-8")
+    except UnicodeDecodeError:
+        output = raw_output.decode(locale.getpreferredencoding(False), errors="replace")
     return output.splitlines()[0] if output else f"exit code {result.returncode}"
 
 
@@ -117,6 +123,57 @@ def compile_commands(build_dir: Path) -> list[str]:
     return sorted(command for command in commands if command)
 
 
+def optional_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return "not available"
+
+
+def power_state() -> dict[str, str]:
+    if sys.platform.startswith("linux"):
+        return {
+            "scaling_governor": optional_text(
+                Path("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+            ),
+            "energy_performance_preference": optional_text(
+                Path("/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference")
+            ),
+        }
+    if sys.platform.startswith("win"):
+        return {"active_power_scheme": command_version(["powercfg", "/getactivescheme"])}
+    return {"status": "not available"}
+
+
+def process_affinity() -> list[int] | str:
+    if hasattr(os, "sched_getaffinity"):
+        return sorted(os.sched_getaffinity(0))
+    if sys.platform.startswith("win"):
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.GetProcessAffinityMask.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_size_t),
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        kernel32.GetProcessAffinityMask.restype = ctypes.c_int
+        process_mask = ctypes.c_size_t()
+        system_mask = ctypes.c_size_t()
+        handle = kernel32.GetCurrentProcess()
+        if kernel32.GetProcessAffinityMask(
+            handle, ctypes.byref(process_mask), ctypes.byref(system_mask)
+        ):
+            return [index for index in range(64) if process_mask.value & (1 << index)]
+    return "not available"
+
+
+def package_version(name: str) -> str:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return "not installed"
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True, type=Path)
@@ -129,6 +186,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--repeats", required=True, type=int)
     parser.add_argument("--theta", required=True, type=float)
     parser.add_argument("--seed", required=True, type=int)
+    parser.add_argument("--order-seed", required=True, type=int)
     parser.add_argument("--requested-threads", required=True, type=int)
     parser.add_argument("--effective-parallel-threads", required=True, type=int)
     parser.add_argument("--languages", required=True)
@@ -140,7 +198,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     arguments = parse_arguments()
     metadata = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "source": {"version": arguments.version, "commit": arguments.commit},
         "system": {
@@ -152,13 +210,18 @@ def main() -> None:
             "physical_cores": physical_core_count(),
             "logical_cores": os.cpu_count(),
             "physical_memory_bytes": physical_memory_bytes(),
+            "process_affinity_logical_cpus": process_affinity(),
+            "power_state": power_state(),
         },
         "toolchain": {
             "cxx": command_version([os.environ.get("CXX", "c++"), "--version"]),
-            "cmake": command_version(["cmake", "--version"]),
+            "cmake": command_version(
+                [os.environ.get("CMAKE_COMMAND", "cmake"), "--version"]
+            ),
             "rustc": command_version(["rustc", "--version"]),
             "cargo": command_version(["cargo", "--version"]),
             "python": platform.python_version(),
+            "matplotlib": package_version("matplotlib"),
             "cmake_build_type": "Release",
             "cargo_profile": "release with lto=true and codegen-units=1",
             "cxxflags_environment": os.environ.get("CXXFLAGS", ""),
@@ -174,6 +237,8 @@ def main() -> None:
             "measured_frames": arguments.frames,
             "warmup_frames": arguments.warmup_frames,
             "independent_process_repeats": arguments.repeats,
+            "execution_order": "blocked deterministic shuffle; each configuration runs once per repeat",
+            "order_seed": arguments.order_seed,
             "theta": arguments.theta,
             "requested_threads": arguments.requested_threads,
             "effective_parallel_threads": arguments.effective_parallel_threads,

@@ -24,6 +24,7 @@ struct Particle {
     pos_x: f32,
     pos_y: f32,
     mass: f32,
+    next_duplicate: usize,
 }
 
 struct Node {
@@ -77,15 +78,14 @@ fn threadTree(nodeIdx: usize, nextIdx: usize, arena: &mut Vec<Node>)
 
 fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles: &mut Vec<Particle>)
 {
-    //let node = &mut arena[nodeIdx];
     if arena[nodeIdx].particle_index != usize::MAX
     {
         let oldIdx: usize = arena[nodeIdx].particle_index;
-        let mut shift = 0.0001;
-        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
+        if particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
         {
-            particles[pIdx].pos_x += shift;
-            shift *= 2.0;
+            particles[pIdx].next_duplicate = oldIdx;
+            arena[nodeIdx].particle_index = pIdx;
+            return;
         }
     }
 
@@ -129,7 +129,6 @@ fn insertParticle(nodeIdx: usize, pIdx: usize, arena: &mut Vec<Node>,  particles
 
 fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Vec<Particle>)
 {
-    //let node = &mut arena[nodeIdx];
     if arena[nodeIdx].children[0] != usize::MAX
     {
         arena[nodeIdx].mass = 0.0;
@@ -140,7 +139,6 @@ fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Ve
         {
             let childIdx = arena[nodeIdx].children[i];
             computeMassDistribution(childIdx, arena, particles);
-            //let child = &arena[childIdx];
             arena[nodeIdx].mass += arena[childIdx].mass;
             arena[nodeIdx].center_of_mass_x += arena[childIdx].center_of_mass_x * arena[childIdx].mass;
             arena[nodeIdx].center_of_mass_y += arena[childIdx].center_of_mass_y * arena[childIdx].mass;
@@ -153,10 +151,21 @@ fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Ve
     }
     else if arena[nodeIdx].particle_index != usize::MAX
     {
-        let pIdx = arena[nodeIdx].particle_index;
-        arena[nodeIdx].mass = particles[pIdx].mass;
-        arena[nodeIdx].center_of_mass_x = particles[pIdx].pos_x;
-        arena[nodeIdx].center_of_mass_y = particles[pIdx].pos_y;
+        arena[nodeIdx].mass = 0.0;
+        arena[nodeIdx].center_of_mass_x = 0.0;
+        arena[nodeIdx].center_of_mass_y = 0.0;
+        let mut source_idx = arena[nodeIdx].particle_index;
+        while source_idx != usize::MAX {
+            let source = &particles[source_idx];
+            arena[nodeIdx].mass += source.mass;
+            arena[nodeIdx].center_of_mass_x += source.pos_x * source.mass;
+            arena[nodeIdx].center_of_mass_y += source.pos_y * source.mass;
+            source_idx = source.next_duplicate;
+        }
+        if arena[nodeIdx].mass > 0.0 {
+            arena[nodeIdx].center_of_mass_x /= arena[nodeIdx].mass;
+            arena[nodeIdx].center_of_mass_y /= arena[nodeIdx].mass;
+        }
     }
         else
     {
@@ -167,30 +176,55 @@ fn computeMassDistribution(nodeIdx: usize, arena: &mut Vec<Node>, particles: &Ve
 }
 
 
-fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>)
+fn calculateForces(pIdx: usize, arena: &[Node], particles: &[Particle]) -> (f32, f32)
 {
-
+    let target = &particles[pIdx];
+    let mut acc_x = 0.0;
+    let mut acc_y = 0.0;
     let mut currNodeIdx: usize = 0;
     while currNodeIdx != usize::MAX
     {
         let node = &arena[currNodeIdx];
-        let dx = node.center_of_mass_x - particles[pIdx].pos_x;
-        let dy = node.center_of_mass_y - particles[pIdx].pos_y;
-        let dist_sq = dx * dx + dy * dy;
-        //let dist = dist_sq.sqrt();
 
-        if dist_sq < 1e-5 {
+        if node.mass <= 0.0 {
             currNodeIdx = node.next;
             continue;
         }
 
+        if node.children[0] == usize::MAX {
+            let mut source_idx = node.particle_index;
+            while source_idx != usize::MAX {
+                if source_idx != pIdx {
+                    let source = &particles[source_idx];
+                    let dx = source.pos_x - target.pos_x;
+                    let dy = source.pos_y - target.pos_y;
+                    let dist_sq = dx * dx + dy * dy;
+                    if dist_sq >= 1e-5 {
+                        let dist = dist_sq.sqrt();
+                        let acc = G * source.mass / (dist_sq + 1.0);
+                        acc_x += acc * (dx / dist);
+                        acc_y += acc * (dy / dist);
+                    }
+                }
+                source_idx = particles[source_idx].next_duplicate;
+            }
+            currNodeIdx = node.next;
+            continue;
+        }
+
+        let dx = node.center_of_mass_x - target.pos_x;
+        let dy = node.center_of_mass_y - target.pos_y;
+        let dist_sq = dx * dx + dy * dy;
+        let contains_target = (target.pos_x - node.bounds_x).abs() <= node.half_size
+            && (target.pos_y - node.bounds_y).abs() <= node.half_size;
+
         let r_sq = 2.0 * node.half_size * node.half_size;
-        if r_sq < theta() * theta() * dist_sq || node.children[0] == usize::MAX
+        if !contains_target && dist_sq >= 1e-5 && r_sq < theta() * theta() * dist_sq
         {
             let dist = dist_sq.sqrt();
             let acc = G * node.mass / (dist_sq + 1.0);
-            particles[pIdx].acc_x += acc * (dx / dist);
-            particles[pIdx].acc_y += acc * (dy / dist);
+            acc_x += acc * (dx / dist);
+            acc_y += acc * (dy / dist);
             currNodeIdx = node.next;
         }
         else
@@ -198,6 +232,7 @@ fn calculateForces(pIdx: usize, arena: &Vec<Node>, particles: &mut Vec<Particle>
             currNodeIdx = node.children[0];
         }
     }
+    (acc_x, acc_y)
 }
 
 #[allow(dead_code)]
@@ -288,6 +323,7 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
                 mass: parts[4].parse().unwrap(),
                 acc_x: 0.0,
                 acc_y: 0.0,
+                next_duplicate: usize::MAX,
             });
         }
     }
@@ -329,6 +365,7 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         arena.clear();
         arena.push(root);
 
+        for particle in &mut particles { particle.next_duplicate = usize::MAX; }
         for i in 0..particles.len()
         {
             insertParticle(0, i, &mut arena, &mut particles);
@@ -354,7 +391,9 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         start_time = Instant::now();
         for i in 0..particles.len()
         {
-            calculateForces(i, &mut arena, &mut particles);
+            let force = calculateForces(i, &arena, &particles);
+            particles[i].acc_x += force.0;
+            particles[i].acc_y += force.1;
         }
 
         if frame == options.warmup_frames {
@@ -389,13 +428,6 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         }
 
 
-        // if j == 0 || j == FRAMES - 1 {
-        //     let metrics = calculate_physics_diagnostics(&particles);
-        //     println!("Frame {}:", j);
-        //     println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
-        //     println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
-        //     println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
-        // }
 }
 
     println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));

@@ -28,6 +28,7 @@ struct Particle
     float mass{0.0f};
     float posX{0.0f};
     float posY{0.0f};
+    int nextDuplicate{-1};
 };
 
 int getQuadrantPtr(const NodePtr* node, const Particle& particle)
@@ -44,11 +45,11 @@ void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles
     if (node->particleIndex != -1)
     {
         int oldIdx = node->particleIndex;
-        float shift = 0.0001f;
-        while (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY)
+        if (particles[pIdx].posX == particles[oldIdx].posX && particles[pIdx].posY == particles[oldIdx].posY)
         {
-            particles[pIdx].posX += shift;
-            shift *= 2.0f;
+            particles[pIdx].nextDuplicate = oldIdx;
+            node->particleIndex = pIdx;
+            return;
         }
     }
 
@@ -71,7 +72,7 @@ void insertParticlePtr(NodePtr* node, int pIdx, std::vector<Particle>& particles
 
     for (int i = 0; i < 4; ++i)
     {
-        node->children[i] = new NodePtr(); //Alokacja na stercie
+        node->children[i] = new NodePtr();
         node->children[i]->halfSize = hSize;
         node->children[i]->boundsX = node->boundsX + ((i % 2) * 2 - 1) * hSize;
         node->children[i]->boundsY = node->boundsY + ((i / 2) * 2 - 1) * hSize;
@@ -107,29 +108,61 @@ void computeMassDistributionPtr(NodePtr* node, const std::vector<Particle>& part
     }
     else if (node->particleIndex != -1)
     {
-        const Particle& p = particles[node->particleIndex];
-        node->mass = p.mass;
-        node->centerX = p.posX;
-        node->centerY = p.posY;
+        node->mass = 0.0f;
+        node->centerX = 0.0f;
+        node->centerY = 0.0f;
+        for (int sourceIdx = node->particleIndex; sourceIdx != -1; sourceIdx = particles[sourceIdx].nextDuplicate)
+        {
+            const Particle& source = particles[sourceIdx];
+            node->mass += source.mass;
+            node->centerX += source.posX * source.mass;
+            node->centerY += source.posY * source.mass;
+        }
+        if (node->mass > 0.0f)
+        {
+            node->centerX /= node->mass;
+            node->centerY /= node->mass;
+        }
     }
+}
+
+void addParticleForce(Particle& target, const Particle& source)
+{
+    float dx = source.posX - target.posX;
+    float dy = source.posY - target.posY;
+    float distSq = dx * dx + dy * dy;
+    if (distSq < 1e-5f) return;
+
+    float dist = std::sqrt(distSq);
+    float acc = G * source.mass / (distSq + 1.0f);
+    target.accX += acc * (dx / dist);
+    target.accY += acc * (dy / dist);
 }
 
 // Force computation (top-down recursion)
 void calculateForcesPtr(int pIdx, NodePtr* node, std::vector<Particle>& particles)
 {
-    if (node == nullptr) return;
+    if (node == nullptr || node->mass <= 0.0f) return;
 
     Particle& p = particles[pIdx];
+    if (node->children[0] == nullptr)
+    {
+        for (int sourceIdx = node->particleIndex; sourceIdx != -1; sourceIdx = particles[sourceIdx].nextDuplicate)
+        {
+            if (sourceIdx != pIdx) addParticleForce(p, particles[sourceIdx]);
+        }
+        return;
+    }
+
     float dx = node->centerX - p.posX;
     float dy = node->centerY - p.posY;
     float distSq = dx * dx + dy * dy;
-
-    if (distSq < 1e-5f) return;
+    bool containsTarget = std::abs(p.posX - node->boundsX) <= node->halfSize
+        && std::abs(p.posY - node->boundsY) <= node->halfSize;
 
     float side_length = node->halfSize * 2.0f;
-    // if ((s / dist) < THETA
     float r_c_sq = (side_length * side_length) * 0.5f; // (s_c * sqrt(2)/2)^2 = s_c^2 * 0.5
-    if (r_c_sq < THETA * THETA * distSq || node->children[0] == nullptr)
+    if (!containsTarget && distSq >= 1e-5f && r_c_sq < THETA * THETA * distSq)
     {
         float dist = std::sqrt(distSq);
         float acc = G * node->mass / (distSq + 1.0f);
@@ -204,7 +237,6 @@ PhysicsMetrics calculatePhysicsDiagnostics(const std::vector<Particle>& particle
 
 int mainMain(const BenchmarkOptions& options)
 {
-    srand(42);
     std::vector<Particle> particles;
     Timer timer;
     double totalTreeBuildTime = 0.0;
@@ -255,6 +287,7 @@ int mainMain(const BenchmarkOptions& options)
         rootPtr->boundsY = centerY;
         rootPtr->halfSize = maxHalfSize;
 
+        for (auto& particle : particles) particle.nextDuplicate = -1;
         for (std::size_t i = 0; i < particles.size(); ++i) {
             insertParticlePtr(rootPtr, static_cast<int>(i), particles);
         }
@@ -300,13 +333,6 @@ int mainMain(const BenchmarkOptions& options)
         deleteTreePtr(rootPtr);
         const double cleanupTime = timer.stopTime();
         if (frame >= options.warmupFrames) totalCleanupTime += cleanupTime;
-        // if (frame == 0 or frame == FRAMES - 1) {
-        //     auto metrics = calculatePhysicsDiagnostics(particles);
-        //     std::cout << "Frame " << frame << ":\n";
-        //     std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
-        //     std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
-        //     std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
-        // }
     }
     std::cout << std::fixed << std::setprecision(6);
     std::cout << "Tree construction time: " << (totalTreeBuildTime / options.frames) << " ms / frame\n";

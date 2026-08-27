@@ -18,7 +18,10 @@ def read_forces(path: Path) -> list[tuple[float, float]]:
     for expected_index, row in enumerate(rows):
         if int(row["index"]) != expected_index:
             raise ValueError(f"Non-contiguous force index in {path}: {row['index']}")
-        forces.append((float(row["acc_x"]), float(row["acc_y"])))
+        force = (float(row["acc_x"]), float(row["acc_y"]))
+        if not all(math.isfinite(component) for component in force):
+            raise ValueError(f"Non-finite force at index {expected_index} in {path}")
+        forces.append(force)
     return forces
 
 

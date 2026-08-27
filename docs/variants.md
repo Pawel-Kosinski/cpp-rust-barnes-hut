@@ -10,6 +10,8 @@ Baseline O(N^2) force calculation. It is used as a reference for accuracy measur
 
 A Barnes-Hut quadtree using pointer-based node allocation. This version is retained as a deliberately simple locality baseline.
 
+All Barnes-Hut variants descend into any node that geometrically contains the target particle, so an accepted aggregate can never include the target itself. Leaves keep coincident particles in an index chain, evaluate their sources directly, and do not perturb input coordinates.
+
 ## V3: Contiguous index-based quadtree
 
 A Barnes-Hut quadtree stored in a contiguous vector/arena. Child relationships are represented with integer indices rather than pointers. Its C++ `NodeV3` layout intentionally has no threaded-traversal field, matching the Rust V3 structure.

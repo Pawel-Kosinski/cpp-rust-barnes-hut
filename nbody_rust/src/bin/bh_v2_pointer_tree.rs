@@ -23,6 +23,7 @@ struct Particle {
     pos_x: f32,
     pos_y: f32,
     mass: f32,
+    next_duplicate: usize,
 }
 
 struct NodePtr {
@@ -64,11 +65,11 @@ fn insertParticlePtr(node: &mut NodePtr, pIdx: usize, particles: &mut Vec<Partic
     if node.particle_index != usize::MAX
     {
         let oldIdx: usize = node.particle_index;
-        let mut shift = 0.0001;
-        while particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
+        if particles[pIdx].pos_x == particles[oldIdx].pos_x && particles[pIdx].pos_y == particles[oldIdx].pos_y
         {
-            particles[pIdx].pos_x += shift;
-            shift *= 2.0; // Double the shift until it is visible in f32
+            particles[pIdx].next_duplicate = oldIdx;
+            node.particle_index = pIdx;
+            return;
         }
     }
 
@@ -132,39 +133,77 @@ fn computeMassDistributionPtr(node: &mut NodePtr, particles: &Vec<Particle>)
     }
     else if node.particle_index != usize::MAX
     {
-        let pIdx = node.particle_index;
-        node.mass = particles[pIdx].mass;
-        node.center_of_mass_x = particles[pIdx].pos_x;
-        node.center_of_mass_y = particles[pIdx].pos_y;
+        node.mass = 0.0;
+        node.center_of_mass_x = 0.0;
+        node.center_of_mass_y = 0.0;
+        let mut source_idx = node.particle_index;
+        while source_idx != usize::MAX {
+            let source = &particles[source_idx];
+            node.mass += source.mass;
+            node.center_of_mass_x += source.pos_x * source.mass;
+            node.center_of_mass_y += source.pos_y * source.mass;
+            source_idx = source.next_duplicate;
+        }
+        if node.mass > 0.0 {
+            node.center_of_mass_x /= node.mass;
+            node.center_of_mass_y /= node.mass;
+        }
     }
 
 }
 
-fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &mut Vec<Particle>)
+fn calculateForcesPtr(pIdx: usize, node: &NodePtr, particles: &[Particle]) -> (f32, f32)
 {
-    let p: &Particle = &particles[pIdx];
+    if node.mass <= 0.0 { return (0.0, 0.0); }
+
+    let p = &particles[pIdx];
+    if node.children[0].is_none() {
+        let mut acc_x = 0.0;
+        let mut acc_y = 0.0;
+        let mut source_idx = node.particle_index;
+        while source_idx != usize::MAX {
+            if source_idx != pIdx {
+                let source = &particles[source_idx];
+                let dx = source.pos_x - p.pos_x;
+                let dy = source.pos_y - p.pos_y;
+                let dist_sq = dx * dx + dy * dy;
+                if dist_sq >= 1e-5 {
+                    let dist = dist_sq.sqrt();
+                    let acc = G * source.mass / (dist_sq + 1.0);
+                    acc_x += acc * (dx / dist);
+                    acc_y += acc * (dy / dist);
+                }
+            }
+            source_idx = particles[source_idx].next_duplicate;
+        }
+        return (acc_x, acc_y);
+    }
+
     let dx = node.center_of_mass_x - p.pos_x;
     let dy = node.center_of_mass_y - p.pos_y;
     let dist_sq = dx * dx + dy * dy;
-    //let dist = dist_sq.sqrt();
-
-    if dist_sq < 1e-5 {return;}
+    let contains_target = (p.pos_x - node.bounds_x).abs() <= node.half_size
+        && (p.pos_y - node.bounds_y).abs() <= node.half_size;
 
     let r_sq = 2.0 * node.half_size * node.half_size;
 
-    if r_sq < theta() * theta() * dist_sq || node.children[0].is_none()
+    if !contains_target && dist_sq >= 1e-5 && r_sq < theta() * theta() * dist_sq
     {
         let dist = dist_sq.sqrt();
         let acc = G * node.mass / (dist_sq + 1.0);
-        particles[pIdx].acc_x += acc * (dx / dist);
-        particles[pIdx].acc_y += acc * (dy / dist);
+        (acc * (dx / dist), acc * (dy / dist))
     }
     else
     {
+        let mut acc_x = 0.0;
+        let mut acc_y = 0.0;
         for i in 0..4
         {
-            calculateForcesPtr(pIdx, node.children[i].as_ref().unwrap(), particles);
+            let force = calculateForcesPtr(pIdx, node.children[i].as_ref().unwrap(), particles);
+            acc_x += force.0;
+            acc_y += force.1;
         }
+        (acc_x, acc_y)
     }
 }
 
@@ -311,6 +350,7 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
                 mass: parts[4].parse().unwrap(),
                 acc_x: 0.0,
                 acc_y: 0.0,
+                next_duplicate: usize::MAX,
             });
         }
     }
@@ -351,6 +391,7 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         root.bounds_y = centerY;
         root.half_size = maxHalfSize;
 
+        for particle in &mut particles { particle.next_duplicate = usize::MAX; }
         for j in 0..particles.len()
         {
             insertParticlePtr(&mut root, j, &mut particles);
@@ -376,7 +417,9 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         start_time = Instant::now();
         for k in 0..particles.len()
         {
-            calculateForcesPtr(k, &root, &mut particles);
+            let force = calculateForcesPtr(k, &root, &particles);
+            particles[k].acc_x += force.0;
+            particles[k].acc_y += force.1;
         }
 
         if frame == options.warmup_frames {
@@ -418,13 +461,6 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         }
 
 
-        // if i == 0 || i == FRAMES - 1 {
-        //     let metrics = calculate_physics_diagnostics(&particles);
-        //     println!("Frame {}:", i);
-        //     println!("Ped ({:.6}, {:.6})", metrics.total_momentum_x, metrics.total_momentum_y);
-        //     println!("Energia kinetyczna {:.6}", metrics.total_kinetic_energy);
-        //     println!("Srodek masy ({:.6}, {:.6})", metrics.center_x, metrics.center_y);
-        // }
 }
 
     println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));

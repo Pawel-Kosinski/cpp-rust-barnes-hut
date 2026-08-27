@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the three manuscript figures from raw v1.1.2 benchmark data."""
+"""Generate the three manuscript figures from raw BHBench-CR benchmark data."""
 
 from __future__ import annotations
 

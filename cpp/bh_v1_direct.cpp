@@ -138,9 +138,9 @@ int main(int argc, char** argv)
         if (frame == options.warmupFrames || frame == options.totalFrames() - 1) {
             auto metrics = calculatePhysicsDiagnostics(particles);
             std::cout << "Frame " << frame << ":\n";
-            std::cout << "Ped (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
-            std::cout << "Energia kinetyczna " << metrics.totalKineticEnergy << "\n";
-            std::cout << "Srodek masy (" << metrics.centerX << ", " << metrics.centerY << ")\n";
+            std::cout << "Momentum (" << metrics.totalMomentumX << ", " << metrics.totalMomentumY << ")\n";
+            std::cout << "Kinetic energy " << metrics.totalKineticEnergy << "\n";
+            std::cout << "Center of mass (" << metrics.centerX << ", " << metrics.centerY << ")\n";
         }
     }
     std::cout << std::fixed << std::setprecision(6);
