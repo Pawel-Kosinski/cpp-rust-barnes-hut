@@ -1,6 +1,14 @@
 # Changelog
 
-## 1.1.3 - unreleased
+## 1.1.4 - unreleased
+
+- Corrected the parallel force-evaluation speedup to compare serial V4 with parallel V5.
+- Documented the exact provenance of the v1.1.3 measurement campaign.
+- Prepared byte-identical publication inputs and a SHA-256 manifest for archival.
+- Clarified cross-platform generator reproducibility and C++/Rust representation differences.
+- Declared the minimum Rust version and added the SoftwareX-compatible `Licence.txt` copy.
+
+## 1.1.3 - 2026-08-27
 
 - Prevented Barnes-Hut nodes that contain the target particle from being accepted as aggregates.
 - Added exact leaf handling for coincident particles without modifying their input positions.

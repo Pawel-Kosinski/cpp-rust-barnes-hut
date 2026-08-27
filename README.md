@@ -1,6 +1,6 @@
 # BHBench-CR
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22112969.svg)](https://doi.org/10.5281/zenodo.22112969)
+[![Archived DOI (v1.1.2)](https://zenodo.org/badge/DOI/10.5281/zenodo.22112969.svg)](https://doi.org/10.5281/zenodo.22112969)
 
 BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. It is intended for reproducible implementation experiments, teaching, and comparative studies of data layout, traversal strategy, and the way matched solver strategies are expressed in C++/OpenMP and Rust/Rayon.
 
@@ -32,6 +32,7 @@ The software is not intended to be a production astrophysical simulator or a sta
     CMakeLists.txt        CMake build configuration for C++
     CITATION.cff          Citation metadata
     LICENSE               MIT license
+    Licence.txt           Identical license copy for SoftwareX packaging
 
 ## Solver variants
 
@@ -45,13 +46,20 @@ The intended SoftwareX scope and limitations are described in:
 
 ## Benchmark data
 
-The v1.1.3 manuscript results are generated as one row per independent process,
-with separate raw data, summaries, logs, and environment metadata. The old
+The v1.1.3 measurement campaign distributed with v1.1.4 contains one row per
+independent process, with separate raw data, summaries, logs, and environment
+metadata. The old
 aggregate-only workbook is retained solely for provenance at:
 
     results/historical/Results_data_v1.0_historical.xlsx
 
-It is not used to generate the v1.1.3 manuscript figures.
+It is not used to generate the current manuscript figures.
+
+The byte-identical publication inputs are distributed as a separate archival
+asset with `SHA256SUMS`. The generator is deterministic within the recorded
+toolchain, but different math-library implementations can produce last-bit
+differences in generated coordinates across platforms. See
+`results/manuscript/v1.1.3/README.md` and `PROVENANCE.md` in that directory.
 
 ## C++ source files
 
@@ -162,12 +170,14 @@ The author list is provided in:
 This project is distributed under the MIT License. See:
 
     LICENSE
+    Licence.txt
 
 ## Citation
 
 If you use this software, please cite the associated SoftwareX article and the
-software release matching the results. The latest public archive before the
-v1.1.3 release is v1.1.2:
+software release matching the results. The DOI below identifies the previous
+archived release, v1.1.2; the version-specific v1.1.4 DOI will replace it when
+the new Zenodo record is published:
 
     https://doi.org/10.5281/zenodo.22112969
 

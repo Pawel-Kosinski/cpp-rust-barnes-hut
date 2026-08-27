@@ -75,7 +75,18 @@ interprocedural optimization. The parallel force-evaluation variant uses OpenMP.
 ## Rust implementation
 
 The Rust implementation uses release-mode builds with LTO and one code-generation
-unit. The parallel force-evaluation variant uses Rayon.
+unit. Rust 1.85 or newer is required by edition 2024. The parallel
+force-evaluation variant uses Rayon.
+
+## Cross-language alignment
+
+The C++ and Rust variants match the numerical model, input, solver progression,
+parameters, timing boundaries, and benchmark protocol. Their object layouts are
+not byte-identical: C++ arena indices use `int`, Rust arena indices use `usize`,
+and the idiomatic parallel implementations differ in how force results are
+buffered and committed. Reported C++/Rust timings are therefore end-to-end
+implementation comparisons, not isolated measurements of language syntax,
+memory safety, bounds checks, or one runtime feature.
 
 ## Result data
 
@@ -111,7 +122,9 @@ Compared points within an experiment use the same input, warm-up count, measured
 frame count, repeat count, and thread policy. Configuration order is reshuffled
 within every repeat to distribute thermal or frequency drift across
 implementations. Defaults are embedded in each script and are also written into
-the result metadata.
+the result metadata. The shuffle is reproducible but does not force every
+configuration to occupy every block position equally when repeat counts are
+small.
 
 ## Reproducibility notes
 
@@ -122,3 +135,7 @@ series. Force snapshots and `scripts/numerical_regression.sh` provide a separate
 deterministic correctness check for V2-V5 against direct summation in both
 languages. The suite covers 8- and 256-particle inputs, theta values 0.3 and 0.7,
 unequal masses, coincident positions, and a high-theta self-interaction case.
+
+The v1.1.3 publication campaign was executed on Windows 11 through MSYS2. Linux
+is the full CI and standalone-archive test environment; it is not the source of
+the reported timing series.

@@ -200,10 +200,10 @@ def plot_figure_3(root: Path, output: Path) -> None:
 
     for language in ("cpp", "rust"):
         particle_counts = sorted(
-            int(key[2]) for key in stats if key[0] == language and key[1] == "v3"
+            int(key[2]) for key in stats if key[0] == language and key[1] == "v4"
         )
         speedups = [
-            stats[(language, "v3", str(count))][0] / stats[(language, "v5", str(count))][0]
+            stats[(language, "v4", str(count))][0] / stats[(language, "v5", str(count))][0]
             for count in particle_counts
         ]
         axes[1].plot(
@@ -212,11 +212,11 @@ def plot_figure_3(root: Path, output: Path) -> None:
             marker="o",
             linewidth=2,
             color=COLORS[language],
-            label="C++ V3/V5" if language == "cpp" else "Rust V3/V5",
+            label="C++ V4/V5" if language == "cpp" else "Rust V4/V5",
         )
     axes[1].axhline(1.0, color="#666666", linewidth=1)
     axes[1].set_xlabel("Particles (millions)")
-    axes[1].set_ylabel("V5 speedup over V3")
+    axes[1].set_ylabel("V5 speedup over V4")
     axes[1].set_title("Parallel force-evaluation speedup")
     axes[1].legend(frameon=False)
 

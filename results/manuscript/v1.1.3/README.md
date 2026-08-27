@@ -20,8 +20,20 @@ host. No measurements from another machine or release are included.
 Each result set contains raw process-level rows, sample-statistics summaries,
 individual logs, and `environment.json`. Figure 1 also contains force dumps and
 direct-summation error metrics. Generated input files are omitted from Git
-because they are deterministically recreated by the workflow; each environment
-record stores the generated input's SHA-256 hash.
+because they are large. The generator is deterministic within the recorded
+toolchain, but platform math-library and floating-point text conversion can
+change the final bytes. The exact publication inputs are therefore distributed
+as a companion Zenodo asset. Each environment record stores the corresponding
+SHA-256 hash:
+
+- 10,000: `963cf4f2e1e5a94ac41ed6e4dd31762d91a695a0b4baf46f96d535195dbea543`
+- 100,000: `d9fcbc86fdda6b50d59c65e0f518da337c853ad16e1794dd0c2c66119296b229`
+- 1,000,000: `9e0cc8e1f36862425fb367077aa8f46c219e26c55c7be788a19b2365fbb63d6f`
+- 2,000,000: `023600e31fab3605a2a8ee336cb389379e2a176b9a021de26293c1a3b52ebeff`
+- 5,000,000: `45d19568b6c993631c59ddd0aa407a1611e998b9a303518ad49dc0245581a32e`
+
+See `PROVENANCE.md` for the relationship between the measurement commit and
+the release commit.
 
 ## Reproduction
 
