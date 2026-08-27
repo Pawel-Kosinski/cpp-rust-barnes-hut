@@ -10,3 +10,7 @@ authors:
 repository-code: "https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut"
 license: MIT
 version: "1.1.4"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22126401"
+date-released: 2026-08-27

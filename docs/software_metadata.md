@@ -9,7 +9,7 @@ BHBench-CR
 - Version: 1.1.4
 - GitHub release target: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.4
 - Benchmark data: v1.1.3 campaign generated from commit `ab17547228b0f7440793c9014bfda41d076a239e`
-- Zenodo archive: version-specific DOI to be assigned before publication
+- Zenodo archive: https://doi.org/10.5281/zenodo.22126401
 
 ## Purpose
 
