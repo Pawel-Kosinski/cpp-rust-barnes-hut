@@ -1,7 +1,7 @@
 # Reproducing the benchmark results
 
 The article uses the v1.1.3 raw process-level measurement campaign distributed
-with release v1.1.4. The historical aggregate workbook is not used.
+with release v1.1.5. The historical aggregate workbook is not used.
 
 The repository contains both C++ and Rust implementations of the same two-dimensional Barnes-Hut benchmark workload.
 

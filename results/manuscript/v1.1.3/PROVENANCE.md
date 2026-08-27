@@ -17,3 +17,7 @@ Release v1.1.4 corrects only the interpretation and plotting of V4/V5 parallel
 speedup, adds archival input documentation, and updates packaging metadata. It
 does not alter the recorded timings or claim that they were regenerated from a
 later commit.
+
+Release v1.1.5 synchronizes the version-specific DOI, release date, citation,
+package, repository, and manuscript metadata. The solver sources, benchmark
+measurements, publication inputs, and figures remain unchanged.
