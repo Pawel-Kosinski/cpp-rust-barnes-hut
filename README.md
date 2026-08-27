@@ -132,6 +132,9 @@ which each selected configuration runs once in a deterministically shuffled
 order. The raw data record the order seed and block position together with
 unambiguous timings, the input hash and seed, CPU/RAM/OS and power metadata,
 process affinity, compiler versions, and the effective V5 thread count.
+An interrupted selective run can be continued with the identical command plus
+`--resume --output-dir PATH`; recorded source and protocol metadata are checked
+before completed rows are skipped.
 
 Reproduce all three manuscript experiments and plots with:
 

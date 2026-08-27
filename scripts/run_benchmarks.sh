@@ -19,6 +19,7 @@ output_dir=""
 build_dir="${BUILD_DIR:-build}"
 rust_target_dir="${CARGO_TARGET_DIR:-nbody_rust/target}"
 no_build=0
+resume=0
 
 usage() {
     cat <<'EOF'
@@ -37,6 +38,7 @@ Usage: bash scripts/run_benchmarks.sh [options]
   --variants LIST         Comma-separated subset of v1,v2,v3,v4,v5
   --output-dir DIR        New result directory; defaults to a UTC-dated directory
   --no-build              Reuse existing binaries
+  --resume                Continue an interrupted run in an existing output directory
   --help                  Show this message
 EOF
 }
@@ -56,6 +58,7 @@ while [ "$#" -gt 0 ]; do
         --variants) variants_csv="$2"; shift 2 ;;
         --output-dir) output_dir="$2"; shift 2 ;;
         --no-build) no_build=1; shift ;;
+        --resume) resume=1; shift ;;
         --help) usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
     esac
@@ -107,7 +110,16 @@ if [ -z "$output_dir" ]; then
     output_dir="results/generated/$(date -u +%Y%m%dT%H%M%SZ)-${BASHPID}"
 fi
 if [ -e "$output_dir" ]; then
-    echo "Output directory already exists; refusing to overwrite it: $output_dir" >&2
+    if [ "$resume" -eq 0 ]; then
+        echo "Output directory already exists; refusing to overwrite it: $output_dir" >&2
+        exit 1
+    fi
+    if [ ! -d "$output_dir" ] || [ ! -f "$output_dir/raw_runs.csv" ]; then
+        echo "Cannot resume without an existing raw_runs.csv: $output_dir" >&2
+        exit 1
+    fi
+elif [ "$resume" -eq 1 ]; then
+    echo "Cannot resume because the output directory does not exist: $output_dir" >&2
     exit 1
 fi
 
@@ -194,9 +206,48 @@ mkdir -p "$output_dir/logs"
 raw="$output_dir/raw_runs.csv"
 summary="$output_dir/summary.csv"
 environment="$output_dir/environment.json"
-printf '%s\n' 'run_id,started_utc,language,variant,repeat,order_seed,block_position,particles,measured_frames,warmup_frames,theta,seed,requested_threads,effective_threads,input,tree_ms_per_frame,force_update_ms_per_frame,cleanup_ms_per_frame,total_ms_per_frame,total_run_ms,version,commit,log' > "$raw"
-
+raw_header='run_id,started_utc,language,variant,repeat,order_seed,block_position,particles,measured_frames,warmup_frames,theta,seed,requested_threads,effective_threads,input,tree_ms_per_frame,force_update_ms_per_frame,cleanup_ms_per_frame,total_ms_per_frame,total_run_ms,version,commit,log'
+declare -A completed_configurations=()
 run_id="$(basename "$output_dir")"
+
+if [ "$resume" -eq 1 ]; then
+    if [ "$(head -n 1 "$raw" | tr -d '\r')" != "$raw_header" ]; then
+        echo "Cannot resume: unexpected raw_runs.csv schema in $output_dir" >&2
+        exit 1
+    fi
+    while IFS=, read -r completed_run_id _ language variant completed_repeat completed_order completed_position completed_particles completed_frames completed_warmup completed_theta completed_seed completed_requested completed_effective completed_input _ _ _ _ _ completed_version completed_commit _; do
+        key="$language:$variant:$completed_repeat"
+        if [[ -n "${completed_configurations[$key]+present}" ]]; then
+            echo "Cannot resume: duplicate configuration $key in $raw" >&2
+            exit 1
+        fi
+        case ",$languages_csv," in
+            *",$language,"*) ;;
+            *) echo "Cannot resume: unexpected language $language in $raw" >&2; exit 1 ;;
+        esac
+        case ",$variants_csv," in
+            *",$variant,"*) ;;
+            *) echo "Cannot resume: unexpected variant $variant in $raw" >&2; exit 1 ;;
+        esac
+        expected_effective=1
+        if [ "$variant" = v5 ]; then expected_effective="$effective_parallel_threads"; fi
+        if [ "$completed_run_id" != "$run_id" ] ||
+           ! is_nonnegative_integer "$completed_repeat" || [ "$completed_repeat" -eq 0 ] || [ "$completed_repeat" -gt "$repeats" ] ||
+           [ "$completed_order" != "$order_seed" ] || [ "$completed_particles" != "$particles" ] ||
+           [ "$completed_frames" != "$frames" ] || [ "$completed_warmup" != "$warmup_frames" ] ||
+           [ "$completed_seed" != "$seed" ] || [ "$completed_requested" != "$threads" ] ||
+           [ "$completed_effective" != "$expected_effective" ] || [ "$completed_input" != "$input" ] ||
+           [ "$completed_version" != "$version" ] || [ "$completed_commit" != "$commit" ] ||
+           ! awk -v actual="$completed_theta" -v expected="$theta" 'BEGIN {exit !((actual + 0) == (expected + 0))}'; then
+            echo "Cannot resume: row for $key does not match the requested protocol" >&2
+            exit 1
+        fi
+        completed_configurations[$key]="$completed_position"
+    done < <(tail -n +2 "$raw" | tr -d '\r')
+else
+    printf '%s\n' "$raw_header" > "$raw"
+fi
+
 configurations=()
 for language in "${languages[@]}"; do
     for variant in "${variants[@]}"; do
@@ -214,6 +265,15 @@ for repeat in $(seq 1 "$repeats"); do
         block_position=$((block_position + 1))
         configuration="${configuration%$'\r'}"
         IFS=':' read -r language variant <<< "$configuration"
+        key="$language:$variant:$repeat"
+        if [[ -n "${completed_configurations[$key]+present}" ]]; then
+            if [ "${completed_configurations[$key]}" != "$block_position" ]; then
+                echo "Cannot resume: block position mismatch for $key" >&2
+                exit 1
+            fi
+            echo "Skipping completed run: $language $variant repeat $repeat"
+            continue
+        fi
         if [ "$language" = cpp ]; then
             binary="$(resolve_cpp_binary "bh_cpp_$variant")"
         else

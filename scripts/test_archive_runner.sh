@@ -34,6 +34,25 @@ bash scripts/run_benchmarks.sh \
     --output-dir results/archive-runner-test
 
 test "$(wc -l < results/archive-runner-test/raw_runs.csv)" -eq 5
+
+# Simulate an interruption and verify that only the missing row is recreated.
+head -n 4 results/archive-runner-test/raw_runs.csv > results/archive-runner-test/raw_runs.partial
+mv results/archive-runner-test/raw_runs.partial results/archive-runner-test/raw_runs.csv
+bash scripts/run_benchmarks.sh \
+    --no-build \
+    --resume \
+    --input data/smoke_input.txt \
+    --particles 8 \
+    --frames 1 \
+    --warmup-frames 1 \
+    --repeats 2 \
+    --theta 0.3 \
+    --threads 2 \
+    --languages cpp,rust \
+    --variants v3 \
+    --output-dir results/archive-runner-test
+
+test "$(wc -l < results/archive-runner-test/raw_runs.csv)" -eq 5
 test "$(wc -l < results/archive-runner-test/summary.csv)" -eq 3
 grep -q '"commit": "not-applicable-source-archive"' results/archive-runner-test/environment.json
 grep -q '"execution_order": "blocked deterministic shuffle' results/archive-runner-test/environment.json

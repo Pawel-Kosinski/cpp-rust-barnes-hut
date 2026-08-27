@@ -71,6 +71,12 @@ reports means and sample standard deviations across independent processes. Each
 repeat runs all selected configurations once in a deterministically shuffled
 order; use `--order-seed` to select and record another shuffle sequence.
 
+If a long run is interrupted, repeat the identical command with `--resume` and
+the same `--output-dir`. The runner validates the existing CSV schema, source
+commit, protocol, selected configurations, and block positions before skipping
+completed processes and executing only missing rows. It refuses to combine
+results when any recorded setting differs.
+
 ## Manuscript figures
 
 Run all publication experiments with one command:

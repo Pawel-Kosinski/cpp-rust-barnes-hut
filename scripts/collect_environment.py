@@ -215,7 +215,9 @@ def main() -> None:
         },
         "toolchain": {
             "cxx": command_version([os.environ.get("CXX", "c++"), "--version"]),
-            "cmake": command_version(["cmake", "--version"]),
+            "cmake": command_version(
+                [os.environ.get("CMAKE_COMMAND", "cmake"), "--version"]
+            ),
             "rustc": command_version(["rustc", "--version"]),
             "cargo": command_version(["cargo", "--version"]),
             "python": platform.python_version(),
