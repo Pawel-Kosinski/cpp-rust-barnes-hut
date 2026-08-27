@@ -1,6 +1,6 @@
 # BHBench-CR
 
-[![Archived DOI (v1.1.2)](https://zenodo.org/badge/DOI/10.5281/zenodo.22112969.svg)](https://doi.org/10.5281/zenodo.22112969)
+[![Version DOI (v1.1.4)](https://zenodo.org/badge/DOI/10.5281/zenodo.22126401.svg)](https://doi.org/10.5281/zenodo.22126401)
 
 BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. It is intended for reproducible implementation experiments, teaching, and comparative studies of data layout, traversal strategy, and the way matched solver strategies are expressed in C++/OpenMP and Rust/Rayon.
 
@@ -175,11 +175,9 @@ This project is distributed under the MIT License. See:
 ## Citation
 
 If you use this software, please cite the associated SoftwareX article and the
-software release matching the results. The DOI below identifies the previous
-archived release, v1.1.2; the version-specific v1.1.4 DOI will replace it when
-the new Zenodo record is published:
+version-specific software release matching the reported results:
 
-    https://doi.org/10.5281/zenodo.22112969
+    https://doi.org/10.5281/zenodo.22126401
 
 Citation metadata are provided in:
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.4 - unreleased
+## 1.1.4 - 2026-08-27
 
 - Corrected the parallel force-evaluation speedup to compare serial V4 with parallel V5.
 - Documented the exact provenance of the v1.1.3 measurement campaign.
