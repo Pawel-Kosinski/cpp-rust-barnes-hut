@@ -1,0 +1,57 @@
+BHBench-CR: PELNE POWTORZENIE W TRYBIE PERFORMANCE / WYDAJNOSC
+===========================================================
+Ten folder jest ODDZIELNY od poprzedniego Laptop-BHBench-CR.
+Nie kasuj starego folderu ani jego wynikow. Nie uruchamiaj obu naraz.
+
+CO ZROBIC NA LAPTOPIE
+1. Zaczekaj na pelna synchronizacje tego folderu przez Synology.
+2. Podlacz zasilacz. Dopiero POTEM ustaw Performance / Wydajnosc w Armoury
+   Crate. Upewnij sie, ze automatyczny profil po podlaczeniu zasilacza lub
+   profil scenariusza nie przelacza go z powrotem na Turbo.
+3. Zostaw staly profil przez caly test i wznowienia. Nie zmieniaj recznie
+   limitow procesora, boostu, wentylatorow, Windows ani sterownikow.
+   Program niczego nie przestawia w ustawieniach systemu.
+4. Postaw laptop na tym samym twardym podlozu, odslon wloty powietrza,
+   zostaw otwarta pokrywe. Zamknij inne obciazajace aplikacje i pozostaw
+   komputer bez obciazenia na okolo 10 minut przed startem. Nie wylaczaj
+   antywirusa. Wstrzymaj duze transfery, ale pozostaw synchronizacje logow.
+5. Opcjonalnie kliknij 01_SPRAWDZ.cmd: oczekiwane COMPLETE: 10 / 10.
+6. Kliknij 02_START_LUB_WZNOW.cmd i wpisz WYDAJNOSC, gdy skrypt zapyta.
+   Wpis oznacza Twoje potwierdzenie trybu; skrypt nie czyta samej aplikacji
+   Armoury Crate. Widoczny plan Windows jest rejestrowany osobno.
+   Jesli nadal wykrywa stary plan Turbo, zatrzyma sie zamiast uruchomic test.
+7. Zostaw laptop bez pracy do COMPLETE: 430 / 430. Okno mozna zminimalizowac;
+   Codex nie musi byc otwarty i przebieg nie zuzywa tokenow modelu.
+8. Zaczekaj na synchronizacje _wyniki, potem napisz w watku, ze zakonczono.
+
+CZAS, WYNIKI I BLEDY
+Poprzedni pelny przebieg trwal okolo godziny; wolniejszy profil moze
+potrzebowac wiecej. To orientacja, nie gwarantowany termin.
+04_STATUS.cmd pokazuje TYLKO wyniki tego zestawu, nie starego Turbo.
+03_ZATRZYMAJ.cmd przerywa biezaca probe; wznowienie przez 02 zachowuje udane.
+Nie zamykaj pokrywy, nie odlaczaj zasilacza i nie zmieniaj profilu w trakcie.
+Udane proby pozostaja przy wznowieniu; bledne sa zachowane do diagnozy.
+
+Wyniki: _wyniki\NAZWA_LAPTOPA\latest.json oraz wskazany katalog *-Full.
+Znajdziesz status.json, runner.log, environment.json, powercfg.txt, pelny
+plan, records i attempts ze stdout/stderr oraz ewentualny last-error.txt.
+Lokalny oryginal: %LOCALAPPDATA%\BHBench-CR\laptop-r1\runs\NOWY_KLUCZ\Full.
+Nowy klucz zestawu oddziela te wyniki od poprzednich. Nie usuwaj cache.
+SYNC DEFERRED / complete_sync_pending oznacza oczekiwanie na dostarczenie
+kopii przez Synology; ponow 02, aby doslac brakujace pliki bez powtarzania
+poprawnych obliczen. Zmiana ustawien zasilania przerywa kampanie.
+Nie zmieniaj manifestu ani zabezpieczen skryptu przy bledzie; przeslij log.
+
+CO POROWNUJEMY
+Dokladnie te same 430 prob, kolejnosc, pliki EXE/DLL, wejscia i referencje:
+54 kontrole numeryczne + 60 baseline + 216 workload + 100 scaling.
+Nie przebudowujemy solverow, nie odrzucamy wolniejszych prob i nie laczymy
+obu serii w jedna srednia. Oceniamy osobno czas i rozrzut, nie wybieramy
+tylko korzystniejszych liczb do publikacji. Zmiany temperatury, tla systemu
+i warunkow startowych nie sa odizolowane; ten przebieg sam nie udowodni,
+ze jedyna przyczyna roznic jest profil. Temperatury i zegary nie sa mierzone.
+Poprzedni log potwierdza nazwe planu Windows Turbo, nie bezposredni odczyt
+wewnetrznego trybu Armoury Crate. To rozroznienie zachowujemy w metodach.
+
+Nie instaluj nowych narzedzi. Ten folder to lokalny zestaw pomiarowy,
+nie nowy release ani DOI. Zrodla i licencje pozostaja w provenance/licenses.

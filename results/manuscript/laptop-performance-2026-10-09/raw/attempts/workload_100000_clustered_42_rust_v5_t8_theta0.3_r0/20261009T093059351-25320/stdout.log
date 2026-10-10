@@ -1,0 +1,6 @@
+Force kernel time: 121.961000 ms / frame
+State update time: 0.220500 ms / frame
+Tree construction time: 33.1921 ms / frame
+Force/update time: 122.1815 ms / frame
+Cleanup time: 0.0000 ms / frame
+Total measured time: 310.7472 ms

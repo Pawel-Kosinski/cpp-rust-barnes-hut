@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "process_records": 430,
+  "groups": {
+    "correctness": 54,
+    "baseline": 60,
+    "workload": 216,
+    "scaling": 100
+  },
+  "kit_files": 66,
+  "timing_rows": 376,
+  "force_comparisons": 54,
+  "artifacts_verified": 914,
+  "matched_binaries": 10,
+  "matched_inputs": 14,
+  "matched_references": 3,
+  "cross_host_approximate_force_comparisons": 48,
+  "identical_parsed_force_arrays": 48,
+  "byte_identical_force_files": 48,
+  "kit_manifest_sha256": "0c87ef6469e8150fb59ffe8df9dffc3052368e0dbbb73dbc73985f9b8ab8041b",
+  "environment_fingerprint": "a9a02af061a2f3e0ae59ea516e8affd740c06ad472c352af43f91e217bcebd7e",
+  "python": "3.11.4",
+  "numpy": "2.4.6",
+  "direct_rms_range": [
+    1.5969388198116719e-06,
+    1.7395415185249782e-06
+  ],
+  "checks": [
+    "exact planned case coverage",
+    "process/attempt equality",
+    "recorded CLI parameters",
+    "kit SHA-256 and sizes",
+    "input/binary/reference identities across hosts",
+    "raw artifact SHA-256",
+    "empty stderr and zero exit codes",
+    "phase timings reparsed",
+    "force metrics recomputed with NumPy",
+    "force arrays compared across hosts",
+    "CSV identities and values checked"
+  ],
+  "note": "PowerShell JSON fingerprints are verified separately by audit_laptop_fingerprints.ps1."
+}

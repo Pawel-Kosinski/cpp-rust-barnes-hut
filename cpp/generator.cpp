@@ -21,6 +21,11 @@ int main(int argc, char** argv)
     std::size_t numParticles = 50000;
     std::string outputFile = "start_50k.txt";
     std::uint32_t seed = 1337;
+    const std::string distribution = argc >= 5 ? argv[4] : "plummer";
+    if (distribution != "plummer" && distribution != "uniform" && distribution != "clustered") {
+        std::cerr << "Distribution must be plummer, uniform, or clustered.\n";
+        return 1;
+    }
 
     if (argc >= 2) {
         numParticles = static_cast<std::size_t>(std::stoull(argv[1]));
@@ -60,14 +65,22 @@ int main(int argc, char** argv)
         // Instead of clamping particles to the boundary, sample until accepted.
         do {
             float u = unitInterval(rng);
-            u = std::min(u, 0.999f);
-            r = a * std::sqrt(u / (1.0f - u));
+            if (distribution == "plummer") u = std::min(u, 0.999f);
+            r = distribution == "plummer" ? a * std::sqrt(u / (1.0f - u))
+                                         : maxRadius * std::sqrt(u);
         } while (r > maxRadius);
 
         const float theta = unitInterval(rng) * 2.0f * PI;
 
-        const float posX = centerX + r * std::cos(theta);
-        const float posY = centerY + r * std::sin(theta);
+        float posX = centerX + r * std::cos(theta);
+        float posY = centerY + r * std::sin(theta);
+        if (distribution == "clustered") {
+            // Four Gaussian clusters; this is a workload, not an equilibrium model.
+            const float radius = 25.0f * std::sqrt(-2.0f * std::log(std::max(unitInterval(rng), 1e-7f)));
+            const std::size_t cluster = i % 4;
+            posX = centerX + (cluster & 1 ? 140.0f : -140.0f) + radius * std::cos(theta);
+            posY = centerY + (cluster & 2 ? 140.0f : -140.0f) + radius * std::sin(theta);
+        }
 
         // Orbital velocity initialization.
         // Compute enclosed mass within radius r for the 2D Plummer distribution.
@@ -89,7 +102,7 @@ int main(int argc, char** argv)
     }
 
     std::cout << "Generated " << numParticles
-              << " Plummer-distribution particles in "
+              << " " << distribution << "-distribution particles in "
               << outputFile << "\n";
 
     return 0;

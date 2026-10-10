@@ -1,0 +1,380 @@
+[
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v1_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 1.6821766071814316e-06,
+    "p95_particle_relative": 3.4769176941400426e-06,
+    "max_particle_relative": 3.1810274513038774e-05
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v2_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.00995932538706084,
+    "p95_particle_relative": 0.028764650772065976,
+    "max_particle_relative": 0.5558464005869516
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v2_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07566828784016137,
+    "p95_particle_relative": 0.21314514563998863,
+    "max_particle_relative": 2.7013813546618963
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v3_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.00995932538706084,
+    "p95_particle_relative": 0.028764650772065976,
+    "max_particle_relative": 0.5558464005869516
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v3_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07566828784016137,
+    "p95_particle_relative": 0.21314514563998863,
+    "max_particle_relative": 2.7013813546618963
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v4_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.00995932538706084,
+    "p95_particle_relative": 0.028764650772065976,
+    "max_particle_relative": 0.5558464005869516
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v4_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07566828784016137,
+    "p95_particle_relative": 0.21314514563998863,
+    "max_particle_relative": 2.7013813546618963
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v5_t8_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.00995932538706084,
+    "p95_particle_relative": 0.028764650772065976,
+    "max_particle_relative": 0.5558464005869516
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_cpp_v5_t8_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07566828784016137,
+    "p95_particle_relative": 0.21314514563998863,
+    "max_particle_relative": 2.7013813546618963
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v1_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 1.6821707515382838e-06,
+    "p95_particle_relative": 3.476422060919568e-06,
+    "max_particle_relative": 3.180584046615641e-05
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v2_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.009959320523665802,
+    "p95_particle_relative": 0.028764915932266624,
+    "max_particle_relative": 0.5558583920069518
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v2_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.0756682882968077,
+    "p95_particle_relative": 0.2131452965068807,
+    "max_particle_relative": 2.70138194872853
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v3_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.009959320523665802,
+    "p95_particle_relative": 0.028764915932266624,
+    "max_particle_relative": 0.5558583920069518
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v3_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.0756682882968077,
+    "p95_particle_relative": 0.2131452965068807,
+    "max_particle_relative": 2.70138194872853
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v4_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.009959325411007356,
+    "p95_particle_relative": 0.028764650772065976,
+    "max_particle_relative": 0.5558464040851846
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v4_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07566828785743751,
+    "p95_particle_relative": 0.21314514559644218,
+    "max_particle_relative": 2.7013813546618963
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v5_t8_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.009959325411007356,
+    "p95_particle_relative": 0.028764650772065976,
+    "max_particle_relative": 0.5558464040851846
+  },
+  {
+    "case_id": "correctness_10000_plummer_1337_rust_v5_t8_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07566828785743751,
+    "p95_particle_relative": 0.21314514559644218,
+    "max_particle_relative": 2.7013813546618963
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v1_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 1.7395124630214766e-06,
+    "p95_particle_relative": 3.98214790103572e-06,
+    "max_particle_relative": 5.34647478073507e-05
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v2_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887795126556077,
+    "p95_particle_relative": 0.03097492911114635,
+    "max_particle_relative": 0.9069226900427472
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v2_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.04448955662599161,
+    "p95_particle_relative": 0.28580816827876354,
+    "max_particle_relative": 8.61288439094405
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v3_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887795126556077,
+    "p95_particle_relative": 0.03097492911114635,
+    "max_particle_relative": 0.9069226900427472
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v3_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.04448955662599161,
+    "p95_particle_relative": 0.28580816827876354,
+    "max_particle_relative": 8.61288439094405
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v4_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887795126556077,
+    "p95_particle_relative": 0.03097492911114635,
+    "max_particle_relative": 0.9069226900427472
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v4_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.04448955662599161,
+    "p95_particle_relative": 0.28580816827876354,
+    "max_particle_relative": 8.61288439094405
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v5_t8_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887795126556077,
+    "p95_particle_relative": 0.03097492911114635,
+    "max_particle_relative": 0.9069226900427472
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_cpp_v5_t8_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.04448955662599161,
+    "p95_particle_relative": 0.28580816827876354,
+    "max_particle_relative": 8.61288439094405
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v1_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 1.7395415185249782e-06,
+    "p95_particle_relative": 3.984488042594443e-06,
+    "max_particle_relative": 5.353891936562948e-05
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v2_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887792769560335,
+    "p95_particle_relative": 0.030974088961155093,
+    "max_particle_relative": 0.9069106023048731
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v2_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.04448955876202549,
+    "p95_particle_relative": 0.28580742647889307,
+    "max_particle_relative": 8.612859482988537
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v3_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887792769560335,
+    "p95_particle_relative": 0.030974088961155093,
+    "max_particle_relative": 0.9069106023048731
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v3_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.04448955876202549,
+    "p95_particle_relative": 0.28580742647889307,
+    "max_particle_relative": 8.612859482988537
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v4_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887795094833197,
+    "p95_particle_relative": 0.030974926294529137,
+    "max_particle_relative": 0.9069226075247524
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v4_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.044489556622569974,
+    "p95_particle_relative": 0.2858081676790377,
+    "max_particle_relative": 8.612884500442322
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v5_t8_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.004887795094833197,
+    "p95_particle_relative": 0.030974926294529137,
+    "max_particle_relative": 0.9069226075247524
+  },
+  {
+    "case_id": "correctness_10000_uniform_1337_rust_v5_t8_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.044489556622569974,
+    "p95_particle_relative": 0.2858081676790377,
+    "max_particle_relative": 8.612884500442322
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v1_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 1.5969388198116719e-06,
+    "p95_particle_relative": 3.245254073348449e-06,
+    "max_particle_relative": 3.639213733839713e-05
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v2_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.010388941728117718,
+    "p95_particle_relative": 0.027814581296479256,
+    "max_particle_relative": 0.9294518554707059
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v2_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07492508555826403,
+    "p95_particle_relative": 0.20363415709267926,
+    "max_particle_relative": 5.04446102614694
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v3_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.010388941728117718,
+    "p95_particle_relative": 0.027814581296479256,
+    "max_particle_relative": 0.9294518554707059
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v3_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07492508555826403,
+    "p95_particle_relative": 0.20363415709267926,
+    "max_particle_relative": 5.04446102614694
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v4_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.010388941728117718,
+    "p95_particle_relative": 0.027814581296479256,
+    "max_particle_relative": 0.9294518554707059
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v4_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07492508555826403,
+    "p95_particle_relative": 0.20363415709267926,
+    "max_particle_relative": 5.04446102614694
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v5_t8_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.010388941728117718,
+    "p95_particle_relative": 0.027814581296479256,
+    "max_particle_relative": 0.9294518554707059
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_cpp_v5_t8_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07492508555826403,
+    "p95_particle_relative": 0.20363415709267926,
+    "max_particle_relative": 5.04446102614694
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v1_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 1.596944889351072e-06,
+    "p95_particle_relative": 3.245563888626101e-06,
+    "max_particle_relative": 3.6392822875868634e-05
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v2_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.010388946373704014,
+    "p95_particle_relative": 0.027815361200987355,
+    "max_particle_relative": 0.929467387003961
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v2_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07492508652023325,
+    "p95_particle_relative": 0.20363413632503147,
+    "max_particle_relative": 5.044466546371657
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v3_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.010388946373704014,
+    "p95_particle_relative": 0.027815361200987355,
+    "max_particle_relative": 0.929467387003961
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v3_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.07492508652023325,
+    "p95_particle_relative": 0.20363413632503147,
+    "max_particle_relative": 5.044466546371657
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v4_t1_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.01038894172308051,
+    "p95_particle_relative": 0.027814581415412418,
+    "max_particle_relative": 0.9294518513838725
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v4_t1_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.0749250855593754,
+    "p95_particle_relative": 0.20363415725028297,
+    "max_particle_relative": 5.04446102614694
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v5_t8_theta0.3_r0",
+    "samples": 10000,
+    "rms_relative": 0.01038894172308051,
+    "p95_particle_relative": 0.027814581415412418,
+    "max_particle_relative": 0.9294518513838725
+  },
+  {
+    "case_id": "correctness_10000_clustered_1337_rust_v5_t8_theta0.7_r0",
+    "samples": 10000,
+    "rms_relative": 0.0749250855593754,
+    "p95_particle_relative": 0.20363415725028297,
+    "max_particle_relative": 5.04446102614694
+  }
+]

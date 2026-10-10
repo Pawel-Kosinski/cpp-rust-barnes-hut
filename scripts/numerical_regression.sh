@@ -77,7 +77,7 @@ medium_input="$output_dir/generated_256_seed4242.txt"
 BUILD_DIR="$build_dir" bash scripts/generate_input.sh 256 "$medium_input" 4242 > "$output_dir/generator.log"
 medium_input_repeat="$output_dir/generated_256_seed4242_repeat.txt"
 BUILD_DIR="$build_dir" bash scripts/generate_input.sh 256 "$medium_input_repeat" 4242 >> "$output_dir/generator.log"
-if ! cmp -s "$medium_input" "$medium_input_repeat"; then
+if ! "$python_cmd" -c 'import pathlib, sys; sys.exit(pathlib.Path(sys.argv[1]).read_bytes() != pathlib.Path(sys.argv[2]).read_bytes())' "$medium_input" "$medium_input_repeat"; then
     echo "Generator determinism check failed for seed 4242" >&2
     exit 1
 fi

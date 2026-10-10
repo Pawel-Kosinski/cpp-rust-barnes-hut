@@ -1,0 +1,46 @@
+{
+  "implementation": "cpp_v4",
+  "parameters": {
+    "input": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\results\\manuscript\\extended-2026-10-08\\input_plummer_10000_2026.txt",
+    "frames": 1,
+    "warmup": 0,
+    "threads": 1,
+    "theta": 0.3,
+    "dt": 0.016
+  },
+  "command": [
+    "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\build-review\\bh_cpp_v4.exe",
+    "--input",
+    "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\results\\manuscript\\extended-2026-10-08\\input_plummer_10000_2026.txt",
+    "--frames",
+    "1",
+    "--warmup-frames",
+    "0",
+    "--theta",
+    "0.3",
+    "--threads",
+    "1",
+    "--dt",
+    "0.016",
+    "--dump-forces",
+    "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\results\\manuscript\\extended-2026-10-08\\forces\\accuracy_10000_plummer_2026_cpp_v4_theta0.3.csv",
+    "--force-samples",
+    "0"
+  ],
+  "cwd": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut",
+  "input_sha256": "933b459f56e19991d8eda6c2b0de2c01a5ede0cd76cdf2b3daddcb379bc24844",
+  "executable_sha256": "cf51a5247ed5d02854e363059121f2f053c9a41304ba1e017147e93952b17bdc",
+  "artifact_sha256": {},
+  "fingerprint": "1875ed8fc28da0cd3749890a76425126c165b8235f007815a1841c9c36c21caf",
+  "returncode": 0,
+  "wall_seconds": 0.20287860004464164,
+  "completed_utc": "2026-10-08T21:39:23Z",
+  "metrics": {
+    "tree_ms": 1.8824,
+    "force_update_ms": 37.3288,
+    "cleanup_ms": 0.0,
+    "total_ms": 39.2112,
+    "kernel_ms": 37.3193,
+    "update_ms": 0.0095
+  }
+}

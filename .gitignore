@@ -12,6 +12,7 @@ nbody_rust/target/
 
 # CMake
 build/
+build-review/
 cmake-build-*/
 tmp/
 
@@ -20,6 +21,8 @@ tmp/
 .idea/
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
 
 # Generated benchmark input/reference files
 start_*.txt

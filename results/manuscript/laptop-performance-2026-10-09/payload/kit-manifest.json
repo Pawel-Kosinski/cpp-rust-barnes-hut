@@ -1,0 +1,352 @@
+{
+    "schema":  1,
+    "kit":  "BHBench-CR-laptop-Performance-2026-10-09",
+    "runner_revision":  "profile-guard-1",
+    "target_cpu":  "Intel Core i7-11370H",
+    "full_processes":  430,
+    "smoke_processes":  10,
+    "experiment":  {
+                       "label":  "Performance-repeat",
+                       "declared_armoury_mode":  "Performance",
+                       "reject_power_scheme_guids":  [
+                                                         "6fecc5ae-f350-48a5-b669-b472cb895ccf"
+                                                     ]
+                   },
+    "files":  [
+                  {
+                      "path":  "01_SPRAWDZ.cmd",
+                      "sha256":  "d41ab35b464dc655156a9822e453a459c41cf5cb337adc047fb383e53b585bf1",
+                      "bytes":  314
+                  },
+                  {
+                      "path":  "02_START_LUB_WZNOW.cmd",
+                      "sha256":  "1e351a6a183b7f170931c4e96d4aa8639828214e9383561642be7ca78ce079bc",
+                      "bytes":  312
+                  },
+                  {
+                      "path":  "03_ZATRZYMAJ.cmd",
+                      "sha256":  "39fd2bf0bf68a013fb9efdd31348ad44bc1e535bb744acf39930609f15bb10f8",
+                      "bytes":  312
+                  },
+                  {
+                      "path":  "04_STATUS.cmd",
+                      "sha256":  "658079867885e2739ff0967e52b2376ac59bf7d826197e66f032b79a47c54aa0",
+                      "bytes":  316
+                  },
+                  {
+                      "path":  "bin/cpp_v1.exe",
+                      "sha256":  "ab43d7e6aa94d355dcafe030fa10f22781629cffd8e9fc5855083ae21c2ce27c",
+                      "bytes":  257215
+                  },
+                  {
+                      "path":  "bin/cpp_v2.exe",
+                      "sha256":  "7342a5bcf16c61014ea62a97840f6bac21b85c2c5d30349e2f759259a710ea14",
+                      "bytes":  263499
+                  },
+                  {
+                      "path":  "bin/cpp_v3.exe",
+                      "sha256":  "cd892290e862fbf4ac41b7eec98c2d01c5c97515a24532cee5e33571dfd8d50a",
+                      "bytes":  263030
+                  },
+                  {
+                      "path":  "bin/cpp_v4.exe",
+                      "sha256":  "cf51a5247ed5d02854e363059121f2f053c9a41304ba1e017147e93952b17bdc",
+                      "bytes":  265663
+                  },
+                  {
+                      "path":  "bin/cpp_v5.exe",
+                      "sha256":  "c083224680e416de9c6773bb692f0d9406d56c675d83fe26c0d55ff1719bd5a0",
+                      "bytes":  268876
+                  },
+                  {
+                      "path":  "bin/libgcc_s_seh-1.dll",
+                      "sha256":  "80940372431cc76224dfda06e2d33f01e49af3b4e7c499c535be856ebcadd273",
+                      "bytes":  151654
+                  },
+                  {
+                      "path":  "bin/libgomp-1.dll",
+                      "sha256":  "c13023e6a4f686b2a48aa966b1afbbeea488b196be00bfa19aa7f0d39204b87d",
+                      "bytes":  328614
+                  },
+                  {
+                      "path":  "bin/libstdc++-6.dll",
+                      "sha256":  "69200d6d96b903dac4c873031813485a0455828be8101479efc56008862420cc",
+                      "bytes":  2661272
+                  },
+                  {
+                      "path":  "bin/libwinpthread-1.dll",
+                      "sha256":  "e9627114952f819a97cdf72950e18d4d4f3a0a2739ad20bf32dd351e3c89a07e",
+                      "bytes":  63135
+                  },
+                  {
+                      "path":  "bin/rust_v1.exe",
+                      "sha256":  "fbd4578ac0844b47898eac149740da6c6374a6914abd1c35dbdbff9527faf71e",
+                      "bytes":  453308
+                  },
+                  {
+                      "path":  "bin/rust_v2.exe",
+                      "sha256":  "46f7dbc61f90bba71fcdb4261a983e3b824505b63083b8a97ed8e9b594ef6f73",
+                      "bytes":  460869
+                  },
+                  {
+                      "path":  "bin/rust_v3.exe",
+                      "sha256":  "3868c3ef0b50259e29d8fdba723acc7be61c8b016024b852eda6ace74adf102b",
+                      "bytes":  459439
+                  },
+                  {
+                      "path":  "bin/rust_v4.exe",
+                      "sha256":  "d9009816201a80a4faa3dcf89663fe1cc7ec7496645b43183e713e983bee8a63",
+                      "bytes":  459490
+                  },
+                  {
+                      "path":  "bin/rust_v5.exe",
+                      "sha256":  "67dad504e46a26ccbfc142ae98f3b93bd7d24f15bb0072093facc44fb4b0b9ce",
+                      "bytes":  569347
+                  },
+                  {
+                      "path":  "engine/runner.ps1",
+                      "sha256":  "c93eb406e900a3845040a964b4f692b97b67fa3c4d278327bb03ce6dc3c3ae94",
+                      "bytes":  29176
+                  },
+                  {
+                      "path":  "engine/runtime.cs",
+                      "sha256":  "50b969985ebac033d210e8d257df73594ce292ff9cd18a5447177e3505091ede",
+                      "bytes":  5100
+                  },
+                  {
+                      "path":  "inputs/input_clustered_10000_1337.txt",
+                      "sha256":  "2974b4168690707641365567ec32771403f232feb6d1562331175d1f64840160",
+                      "bytes":  510414
+                  },
+                  {
+                      "path":  "inputs/input_clustered_100000_1337.txt",
+                      "sha256":  "85a25774905fa7c5982497ea53e403e4e7cc21b18d7059c36bdfb1b14fa76030",
+                      "bytes":  5247666
+                  },
+                  {
+                      "path":  "inputs/input_clustered_100000_2026.txt",
+                      "sha256":  "ae14e5fdd8aee6e15ec8a89873169709c692cc8eb907d948b82ff9a787629a5f",
+                      "bytes":  5247255
+                  },
+                  {
+                      "path":  "inputs/input_clustered_100000_42.txt",
+                      "sha256":  "e21d34786d6213ba058939e10acacbc0630f97c26e509be4d7bc8125fc7b96cf",
+                      "bytes":  5247753
+                  },
+                  {
+                      "path":  "inputs/input_plummer_1000_1337.txt",
+                      "sha256":  "a554759059a24fa5fa1bb1befcecfac736f888d40601fea3975ab2b0889f1a3d",
+                      "bytes":  51024
+                  },
+                  {
+                      "path":  "inputs/input_plummer_10000_1337.txt",
+                      "sha256":  "963cf4f2e1e5a94ac41ed6e4dd31762d91a695a0b4baf46f96d535195dbea543",
+                      "bytes":  510988
+                  },
+                  {
+                      "path":  "inputs/input_plummer_100000_1337.txt",
+                      "sha256":  "d9fcbc86fdda6b50d59c65e0f518da337c853ad16e1794dd0c2c66119296b229",
+                      "bytes":  5251429
+                  },
+                  {
+                      "path":  "inputs/input_plummer_100000_2026.txt",
+                      "sha256":  "a37ff49e9673cf24cc17f1832bf42e9d991f81ee9ff89f57f4f71a50fcfb4e8d",
+                      "bytes":  5251326
+                  },
+                  {
+                      "path":  "inputs/input_plummer_100000_42.txt",
+                      "sha256":  "1998dc2e6ae7e21ea1280adb70b282837e70da04dfcce6b173aa51198f7f0cc4",
+                      "bytes":  5251347
+                  },
+                  {
+                      "path":  "inputs/input_plummer_1000000_1337.txt",
+                      "sha256":  "9e0cc8e1f36862425fb367077aa8f46c219e26c55c7be788a19b2365fbb63d6f",
+                      "bytes":  52948777
+                  },
+                  {
+                      "path":  "inputs/input_uniform_10000_1337.txt",
+                      "sha256":  "a017398a16d09ea060d0a263150a6438df01b0601850042c2bd36814f73ac1ee",
+                      "bytes":  510205
+                  },
+                  {
+                      "path":  "inputs/input_uniform_100000_1337.txt",
+                      "sha256":  "db8d60dd08a2cb8fea9c40431db83894cfa8443b082ffe8b7d318535b4ee29ee",
+                      "bytes":  5247624
+                  },
+                  {
+                      "path":  "inputs/input_uniform_100000_2026.txt",
+                      "sha256":  "c49051e4528db4c736ce67ae36c1cf7db0d8ca9e2d76b47bf5cb7e49e0e3e991",
+                      "bytes":  5247573
+                  },
+                  {
+                      "path":  "inputs/input_uniform_100000_42.txt",
+                      "sha256":  "58b9a1bb27823f7433734269f9442f75694ea1ecc932ba55b3cf9c7c8d54ec9b",
+                      "bytes":  5247990
+                  },
+                  {
+                      "path":  "licenses/BHBench-CR-LICENSE.txt",
+                      "sha256":  "5018344e7dac0375849eaf142d6726a50979604b8fcba94b967b8a4082c7d2ab",
+                      "bytes":  1072
+                  },
+                  {
+                      "path":  "licenses/gcc-libs/COPYING.LIB",
+                      "sha256":  "a9bdde5616ecdd1e980b44f360600ee8783b1f99b8cc83a2beb163a0a390e861",
+                      "bytes":  26527
+                  },
+                  {
+                      "path":  "licenses/gcc-libs/COPYING.RUNTIME",
+                      "sha256":  "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+                      "bytes":  3324
+                  },
+                  {
+                      "path":  "licenses/gcc-libs/COPYING3",
+                      "sha256":  "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+                      "bytes":  35147
+                  },
+                  {
+                      "path":  "licenses/gcc-libs/README",
+                      "sha256":  "33400d067fa3e2bd670a0868dcdb60c9486e8f559b675cf9ff1ff55d4e0d06ab",
+                      "bytes":  236
+                  },
+                  {
+                      "path":  "licenses/libwinpthread/COPYING",
+                      "sha256":  "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177",
+                      "bytes":  2883
+                  },
+                  {
+                      "path":  "licenses/rust-crates/crossbeam-deque-0.8.6/LICENSE-APACHE",
+                      "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+                      "bytes":  10847
+                  },
+                  {
+                      "path":  "licenses/rust-crates/crossbeam-deque-0.8.6/LICENSE-MIT",
+                      "sha256":  "5734ed989dfca1f625b40281ee9f4530f91b2411ec01cb748223e7eb87e201ab",
+                      "bytes":  1099
+                  },
+                  {
+                      "path":  "licenses/rust-crates/crossbeam-epoch-0.9.18/LICENSE-APACHE",
+                      "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+                      "bytes":  10847
+                  },
+                  {
+                      "path":  "licenses/rust-crates/crossbeam-epoch-0.9.18/LICENSE-MIT",
+                      "sha256":  "5734ed989dfca1f625b40281ee9f4530f91b2411ec01cb748223e7eb87e201ab",
+                      "bytes":  1099
+                  },
+                  {
+                      "path":  "licenses/rust-crates/crossbeam-utils-0.8.21/LICENSE-APACHE",
+                      "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+                      "bytes":  10847
+                  },
+                  {
+                      "path":  "licenses/rust-crates/crossbeam-utils-0.8.21/LICENSE-MIT",
+                      "sha256":  "5734ed989dfca1f625b40281ee9f4530f91b2411ec01cb748223e7eb87e201ab",
+                      "bytes":  1099
+                  },
+                  {
+                      "path":  "licenses/rust-crates/either-1.15.0/LICENSE-APACHE",
+                      "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+                      "bytes":  10847
+                  },
+                  {
+                      "path":  "licenses/rust-crates/either-1.15.0/LICENSE-MIT",
+                      "sha256":  "7576269ea71f767b99297934c0b2367532690f8c4badc695edf8e04ab6a1e545",
+                      "bytes":  1043
+                  },
+                  {
+                      "path":  "licenses/rust-crates/rayon-1.11.0/LICENSE-APACHE",
+                      "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+                      "bytes":  10847
+                  },
+                  {
+                      "path":  "licenses/rust-crates/rayon-1.11.0/LICENSE-MIT",
+                      "sha256":  "0621878e61f0d0fda054bcbe02df75192c28bde1ecc8289cbd86aeba2dd72720",
+                      "bytes":  1071
+                  },
+                  {
+                      "path":  "licenses/rust-crates/rayon-core-1.13.0/LICENSE-APACHE",
+                      "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+                      "bytes":  10847
+                  },
+                  {
+                      "path":  "licenses/rust-crates/rayon-core-1.13.0/LICENSE-MIT",
+                      "sha256":  "0621878e61f0d0fda054bcbe02df75192c28bde1ecc8289cbd86aeba2dd72720",
+                      "bytes":  1071
+                  },
+                  {
+                      "path":  "plan.json",
+                      "sha256":  "ab47b6db17d5f15e1b063dd9e7e926e5134fb09b7b2f5fe5947742a4b1470f7c",
+                      "bytes":  193289
+                  },
+                  {
+                      "path":  "provenance/binary-identity.json",
+                      "sha256":  "9773643caab50f46b984ea696ee1fc2bd9706ee587ae710bf33612d0cd1f3dd2",
+                      "bytes":  2516
+                  },
+                  {
+                      "path":  "provenance/comparison-profile.json",
+                      "sha256":  "c5d06232d550ffd5dbf53964094b09a3d76a7a7dfbaa127dee9c6317d56ab21a",
+                      "bytes":  513
+                  },
+                  {
+                      "path":  "provenance/kit-build.json",
+                      "sha256":  "060611cea34abc68cfcae2d6240ea980637ff28d6cb8774e30ed797b8380844f",
+                      "bytes":  383
+                  },
+                  {
+                      "path":  "provenance/pe-imports.json",
+                      "sha256":  "ae9304ab497f28f48beee69b9b744f4970f4eaf27a633d417d40a736ca475800",
+                      "bytes":  6307
+                  },
+                  {
+                      "path":  "provenance/ryzen-accuracy.csv",
+                      "sha256":  "2d2562bab4e7da8c2a80ce57616f0ed4a720986a608786bcc03a5ce1ef011aa8",
+                      "bytes":  22887
+                  },
+                  {
+                      "path":  "provenance/ryzen-audit.json",
+                      "sha256":  "a9a7685ff60da058db097e78708006a44b7792e8b8b0e51dee0ed03a5e602e36",
+                      "bytes":  477
+                  },
+                  {
+                      "path":  "provenance/ryzen-computational_source.zip",
+                      "sha256":  "c50e9a9aadf51b0c57d8ec82983fca2f66d8a3e808a1a0ad456e27ea0194c1ff",
+                      "bytes":  49325
+                  },
+                  {
+                      "path":  "provenance/ryzen-environment.json",
+                      "sha256":  "1f3e24422b7c69fdbf94a8dbf4b0f26a643dd6d65862b54e31c27abeed1ce5cb",
+                      "bytes":  3212
+                  },
+                  {
+                      "path":  "provenance/ryzen-input_manifest.csv",
+                      "sha256":  "2249463e99482af0304aeaf7c4d3b44ec30cad8fcdafe70d86478faec800bd8f",
+                      "bytes":  2281
+                  },
+                  {
+                      "path":  "provenance/ryzen-source_identity.json",
+                      "sha256":  "c9bd408dbb4f6cd1acae542ab6ffe928c9b764b43f57122eec82f10889d95149",
+                      "bytes":  2449
+                  },
+                  {
+                      "path":  "references/reference_10000_clustered_1337.csv",
+                      "sha256":  "0c7382e8d6bc313b6a70292388d84ddaca0c35f230d353cb7a368284b31217cb",
+                      "bytes":  452650
+                  },
+                  {
+                      "path":  "references/reference_10000_plummer_1337.csv",
+                      "sha256":  "d08f256649bafa1931b4a8e624d740fc5781c1c0c991e6cf1c6ca6f2d93a4078",
+                      "bytes":  461385
+                  },
+                  {
+                      "path":  "references/reference_10000_uniform_1337.csv",
+                      "sha256":  "bfbd87d0d141e1dd300613f7e06d55fe685be3dce096683353316066bb3ec697",
+                      "bytes":  474067
+                  },
+                  {
+                      "path":  "START_HERE.txt",
+                      "sha256":  "2c8ed3bfda792c66ea9ee8ced622e70cf24aa512a848a22ed0042797013a081a",
+                      "bytes":  3568
+                  }
+              ]
+}

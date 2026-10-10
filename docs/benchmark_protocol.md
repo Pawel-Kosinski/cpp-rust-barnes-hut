@@ -139,3 +139,15 @@ unequal masses, coincident positions, and a high-theta self-interaction case.
 The v1.1.3 publication campaign was executed on Windows 11 through MSYS2. Linux
 is the full CI and standalone-archive test environment; it is not the source of
 the reported timing series.
+
+## Extended workflows in version 1.2.0
+
+The new phase-specific timing and validation interface is described in
+`docs/extended_validation.md`. `scripts/run_suite.py` uses manifests to build
+and execute external multi-file solvers; see `docs/external_solvers.md`.
+The extended campaign is stored separately from the historical publication
+records. Its software/data DOI is https://doi.org/10.5281/zenodo.23286007,
+not the historical v1.1.5 DOI. Force-kernel time,
+force-plus-update time, and total measured frame time are distinct metrics.
+Structural byte counts and live heap-block counts are not process RSS or
+cumulative allocation-event measurements.

@@ -1,0 +1,42 @@
+{
+  "cpp_v1": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\build-review\\bh_cpp_v1.exe",
+    "sha256": "ab43d7e6aa94d355dcafe030fa10f22781629cffd8e9fc5855083ae21c2ce27c"
+  },
+  "cpp_v2": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\build-review\\bh_cpp_v2.exe",
+    "sha256": "7342a5bcf16c61014ea62a97840f6bac21b85c2c5d30349e2f759259a710ea14"
+  },
+  "cpp_v3": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\build-review\\bh_cpp_v3.exe",
+    "sha256": "cd892290e862fbf4ac41b7eec98c2d01c5c97515a24532cee5e33571dfd8d50a"
+  },
+  "cpp_v4": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\build-review\\bh_cpp_v4.exe",
+    "sha256": "cf51a5247ed5d02854e363059121f2f053c9a41304ba1e017147e93952b17bdc"
+  },
+  "cpp_v5": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\build-review\\bh_cpp_v5.exe",
+    "sha256": "c083224680e416de9c6773bb692f0d9406d56c675d83fe26c0d55ff1719bd5a0"
+  },
+  "rust_v1": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\nbody_rust\\target\\release\\bh_v1_direct.exe",
+    "sha256": "fbd4578ac0844b47898eac149740da6c6374a6914abd1c35dbdbff9527faf71e"
+  },
+  "rust_v2": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\nbody_rust\\target\\release\\bh_v2_pointer_tree.exe",
+    "sha256": "46f7dbc61f90bba71fcdb4261a983e3b824505b63083b8a97ed8e9b594ef6f73"
+  },
+  "rust_v3": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\nbody_rust\\target\\release\\bh_v3_vector_tree.exe",
+    "sha256": "3868c3ef0b50259e29d8fdba723acc7be61c8b016024b852eda6ace74adf102b"
+  },
+  "rust_v4": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\nbody_rust\\target\\release\\bh_v4_threaded_tree.exe",
+    "sha256": "d9009816201a80a4faa3dcf89663fe1cc7ec7496645b43183e713e983bee8a63"
+  },
+  "rust_v5": {
+    "original_path": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\nbody_rust\\target\\release\\bh_v5_parallel_force.exe",
+    "sha256": "67dad504e46a26ccbfc142ae98f3b93bd7d24f15bb0072093facc44fb4b0b9ce"
+  }
+}

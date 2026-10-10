@@ -1,0 +1,52 @@
+{
+  "created_utc": "2026-10-08T20:57:40Z",
+  "system": "Windows-11-10.0.26200-SP0",
+  "cpu": "AMD Ryzen 7 5800X3D 8-Core Processor",
+  "physical_cores": 8,
+  "logical_cores": 16,
+  "memory_bytes": 68624957440,
+  "affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "power": {
+    "active_power_scheme": "Power Scheme GUID: 9897998c-92de-4669-853f-b7cd3ecb2790  (AMD Ryzen\u2122 Balanced)"
+  },
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "cpp": "c++.EXE (Rev3, Built by MSYS2 project) 16.2.0",
+  "rust": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "compile_commands": [
+    "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic -fopenmp -o CMakeFiles\\bh_cpp_v5.dir\\cpp\\bh_v5_parallel_force.cpp.obj -c F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v5_parallel_force.cpp",
+    "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v1.dir\\cpp\\bh_v1_direct.cpp.obj -c F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v1_direct.cpp",
+    "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v2.dir\\cpp\\bh_v2_pointer_tree.cpp.obj -c F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v2_pointer_tree.cpp",
+    "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v3.dir\\cpp\\bh_v3_vector_tree.cpp.obj -c F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v3_vector_tree.cpp",
+    "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_cpp_v4.dir\\cpp\\bh_v4_threaded_tree.cpp.obj -c F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\bh_v4_threaded_tree.cpp",
+    "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_generator.dir\\cpp\\generator.cpp.obj -c F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\generator.cpp",
+    "C:\\msys64\\ucrt64\\bin\\g++.exe -O3 -DNDEBUG -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic -o CMakeFiles\\bh_sampled_direct.dir\\cpp\\sampled_direct.cpp.obj -c F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\cpp\\sampled_direct.cpp"
+  ],
+  "cargo_profile": "release, lto=true, codegen-units=1",
+  "base_commit": "343749d3124d5ee44b8fdf1c296a66df3df4eb7e",
+  "source_identity": "source_identity.json (includes uncommitted computational changes)",
+  "timing_scope": "phase sum excluding I/O, diagnostics, warm-up and process startup",
+  "order_seed": 20261008,
+  "workload_repeats": 3,
+  "scaling_repeats": 5,
+  "workload_frames": 2,
+  "scaling_frames": 3,
+  "warmup_frames": 1
+}
