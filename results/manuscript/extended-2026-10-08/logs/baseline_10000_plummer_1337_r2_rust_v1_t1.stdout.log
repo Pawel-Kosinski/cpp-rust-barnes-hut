@@ -1,0 +1,14 @@
+Frame 1:
+Momentum (167.540750, 50.918779)
+Kinetic energy 820008.732386
+Center of mass (500.211802, 500.366221)
+Frame 2:
+Momentum (167.540793, 50.918786)
+Kinetic energy 820032.130571
+Center of mass (500.211936, 500.366262)
+Force kernel time: 344.180550 ms / frame
+State update time: 0.020250 ms / frame
+Tree construction time: 0.0000 ms / frame
+Force/update time: 344.2008 ms / frame
+Cleanup time: 0.0000 ms / frame
+Total measured time: 688.4016 ms

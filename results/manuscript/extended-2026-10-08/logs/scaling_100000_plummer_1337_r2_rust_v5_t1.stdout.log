@@ -1,0 +1,6 @@
+Force kernel time: 502.759400 ms / frame
+State update time: 0.151267 ms / frame
+Tree construction time: 22.2134 ms / frame
+Force/update time: 502.9107 ms / frame
+Cleanup time: 0.0000 ms / frame
+Total measured time: 1575.3721 ms

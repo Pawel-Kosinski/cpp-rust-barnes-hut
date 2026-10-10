@@ -1,0 +1,28 @@
+{
+  "implementation": "double_reference",
+  "parameters": {
+    "input": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\results\\manuscript\\extended-2026-10-08\\input_clustered_10000_2026.txt",
+    "frames": 1,
+    "warmup": 0,
+    "threads": 1,
+    "theta": 0.3,
+    "dt": 0.016
+  },
+  "command": [
+    "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\build-review\\bh_sampled_direct.exe",
+    "--input",
+    "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\results\\manuscript\\extended-2026-10-08\\input_clustered_10000_2026.txt",
+    "--dump-forces",
+    "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\results\\manuscript\\extended-2026-10-08\\forces\\reference_10000_clustered_2026.csv",
+    "--force-samples",
+    "0"
+  ],
+  "cwd": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut",
+  "input_sha256": "0558fbb73dce70becbb4bd9b2ff597d999453590d6ca88ec0a3d49e2537eab87",
+  "executable_sha256": "d79e727ad13d1e1843e14c9f056efa04c24ab53297484b2f336305367826ff66",
+  "artifact_sha256": {},
+  "fingerprint": "b2d9fa10be0bdc8d3c33513065cc55ccbcf1c089063f230a310b35ddc3cf6bed",
+  "returncode": 0,
+  "wall_seconds": 0.5789732999983244,
+  "completed_utc": "2026-10-08T21:39:54Z"
+}

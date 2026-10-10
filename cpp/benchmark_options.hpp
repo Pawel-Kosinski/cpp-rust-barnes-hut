@@ -1,6 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
+#include <cmath>
+#include <limits>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -10,6 +13,12 @@
 struct BenchmarkOptions {
     std::string input = "start.txt";
     std::string dumpForces;
+    std::string dumpState;
+    std::string diagnostics;
+    std::string memoryReport;
+    std::size_t diagnosticStride = 1;
+    std::size_t forceSamples = 0;
+    float timeStep = 0.016f;
     std::size_t particles = 0;
     int frames = 10;
     int warmupFrames = 0;
@@ -24,7 +33,9 @@ struct BenchmarkOptions {
 inline void printBenchmarkUsage(const char* program) {
     std::cout << "Usage: " << program
               << " [--input FILE] [--particles N] [--frames N] [--warmup-frames N]"
-              << " [--theta VALUE] [--threads N] [--dump-forces FILE]\n";
+              << " [--theta VALUE] [--threads N] [--dump-forces FILE] [--force-samples N]"
+              << " [--dt VALUE] [--diagnostics FILE] [--diagnostic-stride N]"
+              << " [--dump-state FILE] [--memory-report FILE]\n";
 }
 
 inline bool parseBenchmarkOptions(int argc, char** argv, BenchmarkOptions& options) {
@@ -45,7 +56,21 @@ inline bool parseBenchmarkOptions(int argc, char** argv, BenchmarkOptions& optio
                 options.input = value;
             } else if (argument == "--dump-forces") {
                 options.dumpForces = value;
+            } else if (argument == "--dump-state") {
+                options.dumpState = value;
+            } else if (argument == "--diagnostics") {
+                options.diagnostics = value;
+            } else if (argument == "--memory-report") {
+                options.memoryReport = value;
+            } else if (argument == "--dt") {
+                options.timeStep = std::stof(value);
+            } else if (argument == "--diagnostic-stride" || argument == "--force-samples") {
+                if (value.empty() || value.front() == '-') throw std::invalid_argument("negative count");
+                const auto count = static_cast<std::size_t>(std::stoull(value));
+                if (argument == "--diagnostic-stride") options.diagnosticStride = count;
+                else options.forceSamples = count;
             } else if (argument == "--particles") {
+                if (value.empty() || value.front() == '-') throw std::invalid_argument("negative count");
                 options.particles = static_cast<std::size_t>(std::stoull(value));
             } else if (argument == "--frames") {
                 options.frames = std::stoi(value);
@@ -65,15 +90,18 @@ inline bool parseBenchmarkOptions(int argc, char** argv, BenchmarkOptions& optio
         }
     }
 
-    if (options.frames <= 0 || options.warmupFrames < 0 || options.theta <= 0.0f || options.threads < 0) {
-        std::cerr << "frames and theta must be positive; warm-up frames and threads cannot be negative.\n";
+    if (options.frames <= 0 || options.warmupFrames < 0 || !std::isfinite(options.theta)
+        || options.theta <= 0.0f || options.threads < 0 || !std::isfinite(options.timeStep)
+        || options.timeStep <= 0.0f || options.diagnosticStride == 0
+        || options.warmupFrames > std::numeric_limits<int>::max() - options.frames) {
+        std::cerr << "Invalid frame count, theta, timestep, stride, or thread count.\n";
         return false;
     }
     return true;
 }
 
 template <typename ParticleRange>
-bool writeForces(const std::string& path, const ParticleRange& particles) {
+bool writeForces(const std::string& path, const ParticleRange& particles, std::size_t samples = 0) {
     if (path.empty()) return true;
 
     std::ofstream output(path);
@@ -83,11 +111,14 @@ bool writeForces(const std::string& path, const ParticleRange& particles) {
     }
 
     output << "index,acc_x,acc_y\n" << std::setprecision(9);
-    std::size_t index = 0;
-    for (const auto& particle : particles) {
-        output << index++ << ',' << particle.accX << ',' << particle.accY << '\n';
+    const std::size_t count = samples == 0 ? particles.size() : std::min(samples, particles.size());
+    for (std::size_t k = 0; k < count; ++k) {
+        const std::size_t index = count <= 1 ? 0 : k * (particles.size() - 1) / (count - 1);
+        const auto& particle = particles[index];
+        output << index << ',' << particle.accX << ',' << particle.accY << '\n';
     }
-    return true;
+    output.flush();
+    return static_cast<bool>(output);
 }
 
 inline bool validateParticleCount(const BenchmarkOptions& options, std::size_t loaded) {

@@ -6,12 +6,13 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const TIME_STEP: f32 = 0.016;
 const G : f32 = 1.0;
 static THETA: OnceLock<f32> = OnceLock::new();
 
 #[path = "../benchmark_options.rs"]
 mod benchmark_options;
+#[path = "../diagnostics.rs"]
+mod diagnostics;
 
 fn theta() -> f32 { *THETA.get().expect("benchmark options were not initialized") }
 
@@ -355,11 +356,16 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
     }
 
     let mut total_force_time_ms = 0.0;
+    let mut total_kernel_time_ms = 0.0;
+    let mut total_update_time_ms = 0.0;
     let mut total_tree_time_ms = 0.0;
     if let Err(message) = benchmark_options::validate_particle_count(options, particles.len()) {
         eprintln!("{message}");
         return;
     }
+
+    let mut diagnostics = diagnostics::DiagnosticWriter::new(options.diagnostics.as_deref(), options.time_step, options.diagnostic_stride);
+    diagnostics.record(0, particles.iter().map(|p| [p.pos_x, p.pos_y, p.velocity_x, p.velocity_y, p.mass]), false);
 
     for frame in 0..options.total_frames() {
 
@@ -410,6 +416,10 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
         if frame >= options.warmup_frames {
             total_tree_time_ms += tree_time_ms;
         }
+        if frame == options.warmup_frames && options.memory_report.is_some() {
+            diagnostics::write_memory_report(options.memory_report.as_deref(), arena.len(), std::mem::size_of::<Node>(),
+                arena.capacity(), 1, particles.capacity() * std::mem::size_of::<Particle>(), 0);
+        }
 
         start_time = Instant::now();
         for i in 0..particles.len()
@@ -419,17 +429,20 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
             particles[i].acc_y += force.1;
         }
 
+        let kernel_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
         if frame == options.warmup_frames {
             if let Some(path) = options.dump_forces.as_deref() {
                 if let Err(message) = benchmark_options::write_forces(
                     path,
                     particles.iter().map(|particle| (particle.acc_x, particle.acc_y)),
+                    options.force_samples,
                 ) {
                     eprintln!("{message}");
                     return;
                 }
             }
         }
+        let update_start = Instant::now();
 
 
 
@@ -439,20 +452,26 @@ fn mainMain(options: &benchmark_options::BenchmarkOptions)
 
         for p in &mut particles
         {
-            p.velocity_x += p.acc_x * TIME_STEP;
-            p.velocity_y += p.acc_y * TIME_STEP;
-            p.pos_x += p.velocity_x * TIME_STEP;
-            p.pos_y += p.velocity_y * TIME_STEP;
+            p.velocity_x += p.acc_x * options.time_step;
+            p.velocity_y += p.acc_y * options.time_step;
+            p.pos_x += p.velocity_x * options.time_step;
+            p.pos_y += p.velocity_y * options.time_step;
             p.acc_x = 0.0;
             p.acc_y = 0.0;
         }
-        let force_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
+        let update_time_ms = update_start.elapsed().as_secs_f64() * 1000.0;
         if frame >= options.warmup_frames {
-            total_force_time_ms += force_time_ms;
+            total_kernel_time_ms += kernel_time_ms;
+            total_update_time_ms += update_time_ms;
+            total_force_time_ms += kernel_time_ms + update_time_ms;
         }
+        diagnostics.record(frame + 1, particles.iter().map(|p| [p.pos_x, p.pos_y, p.velocity_x, p.velocity_y, p.mass]), frame + 1 == options.total_frames());
 
 }
 
+    diagnostics::write_state(options.dump_state.as_deref(), particles.iter().map(|p| [p.pos_x, p.pos_y, p.velocity_x, p.velocity_y, p.mass]));
+    println!("Force kernel time: {:.6} ms / frame", total_kernel_time_ms / (options.frames as f64));
+    println!("State update time: {:.6} ms / frame", total_update_time_ms / (options.frames as f64));
     println!("Tree construction time: {:.4} ms / frame", total_tree_time_ms / (options.frames as f64));
     println!("Force/update time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
     println!("Cleanup time: 0.0000 ms / frame");

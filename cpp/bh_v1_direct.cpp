@@ -5,9 +5,9 @@
 #include <cmath>
 #include <iomanip>
 #include "benchmark_options.hpp"
+#include "diagnostics.hpp"
 
 constexpr float G = 1; // Gravitational constant
-constexpr float TIME_STEP = 0.016f; // Time step for the simulation
 
 struct Particle
 {
@@ -61,6 +61,8 @@ int main(int argc, char** argv)
 
     Timer timer;
     double totalForceTime = 0.0;
+    double totalKernelTime = 0.0;
+    double totalUpdateTime = 0.0;
     std::vector<Particle> particles;
 
     std::ifstream inFile(options.input);
@@ -80,6 +82,10 @@ int main(int argc, char** argv)
     }
     inFile.close();
     if (!validateParticleCount(options, particles.size())) return 1;
+
+    DiagnosticWriter<std::vector<Particle>> diagnostics(options.diagnostics, options.timeStep, options.diagnosticStride);
+    diagnostics.record(0, particles);
+    writeMemoryReport(options.memoryReport, 0, 0, 0, 0, particles.capacity() * sizeof(Particle), 0);
 
     for (int frame = 0; frame < options.totalFrames(); ++frame)
     {
@@ -123,18 +129,25 @@ int main(int argc, char** argv)
             particles[i].accX += accX;
             particles[i].accY += accY;
         }
-        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles)) return 1;
+        const double kernelTime = timer.stopTime();
+        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles, options.forceSamples)) return 1;
+        timer.start();
         for (auto& particle : particles)
         {
-            particle.velocityX += particle.accX * TIME_STEP;
-            particle.velocityY += particle.accY * TIME_STEP;
-            particle.posX += particle.velocityX * TIME_STEP;
-            particle.posY += particle.velocityY * TIME_STEP;
+            particle.velocityX += particle.accX * options.timeStep;
+            particle.velocityY += particle.accY * options.timeStep;
+            particle.posX += particle.velocityX * options.timeStep;
+            particle.posY += particle.velocityY * options.timeStep;
             particle.accX = 0.0f;
             particle.accY = 0.0f;
         }
-        const double forceTime = timer.stopTime();
-        if (frame >= options.warmupFrames) totalForceTime += forceTime;
+        const double updateTime = timer.stopTime();
+        if (frame >= options.warmupFrames) {
+            totalKernelTime += kernelTime;
+            totalUpdateTime += updateTime;
+            totalForceTime += kernelTime + updateTime;
+        }
+        diagnostics.record(frame + 1, particles, frame + 1 == options.totalFrames());
         if (frame == options.warmupFrames || frame == options.totalFrames() - 1) {
             auto metrics = calculatePhysicsDiagnostics(particles);
             std::cout << "Frame " << frame << ":\n";
@@ -144,6 +157,9 @@ int main(int argc, char** argv)
         }
     }
     std::cout << std::fixed << std::setprecision(6);
+    writeState(options.dumpState, particles);
+    std::cout << "Force kernel time: " << (totalKernelTime / options.frames) << " ms / frame\n";
+    std::cout << "State update time: " << (totalUpdateTime / options.frames) << " ms / frame\n";
     std::cout << "Tree construction time: 0.000000 ms / frame\n";
     std::cout << "Force/update time: " << (totalForceTime / options.frames) << " ms / frame\n";
     std::cout << "Cleanup time: 0.000000 ms / frame\n";

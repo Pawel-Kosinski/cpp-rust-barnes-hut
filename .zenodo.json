@@ -1,14 +1,15 @@
 {
   "title": "BHBench-CR: A C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants",
-  "description": "Reproducible C++/Rust implementation benchmarks for two-dimensional Barnes-Hut N-body solvers.",
+  "description": "BHBench-CR is an open-source C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. Five paired implementations provide a compact research and teaching codebase for comparing pointer-based and contiguous tree storage, recursive and iterative traversal, and parallel force evaluation using C++/OpenMP and Rust/Rayon under a common numerical model and interface.\n\nVersion 1.2.0 adds manifest-driven builds and execution for external, multi-file implementations; separate force-kernel and state-update timings; configurable timesteps; conservation histories and state snapshots; sampled force output; and structural-memory diagnostics. Additional uniform-disk and clustered inputs complement the existing projected Plummer workloads. Regression tests cover numerical edge cases, timestep refinement and the external build/run interface.\n\nThe accompanying experimental workflows include multiple input seeds and distributions, direct-summation baselines, worker-count scaling, independent double-precision force references, structural-memory measurements, short-time integration and conservation checks, and an OpenMP waiting-policy probe. An extended AMD Ryzen 7 5800X3D campaign is complemented by two separately audited Intel Core i7-11370H laptop series of 430 processes each. The laptop series use identical solver binaries, runtime libraries, input files, stored references and case order, while recording distinct Windows power plans. All observations are retained, and timing series are analyzed separately rather than pooled or filtered for favorable outcomes.\n\nReproduction relies on explicit commands, exact inputs, source and executable identities, environment records, raw process logs and SHA-256 manifests. Historical measurements remain separate from the additional campaigns. The measurements characterize the recorded implementations and environments; they do not establish universal language rankings or causal power-mode effects. BHBench-CR is a two-dimensional implementation benchmark, not a production astrophysical simulator or a claim of long-term orbital accuracy.",
   "upload_type": "software",
   "access_right": "open",
-  "version": "1.1.5",
-  "publication_date": "2026-08-27",
+  "version": "1.2.0",
+  "doi": "10.5281/zenodo.23286007",
+  "publication_date": "2026-10-10",
   "creators": [
     {"name": "Kosiński, Paweł", "affiliation": "Cracow University of Technology"},
     {"name": "Krużel, Filip", "affiliation": "Cracow University of Technology", "orcid": "0000-0002-3462-9144"}
   ],
   "license": "MIT",
-  "keywords": ["Barnes-Hut", "N-body", "benchmark", "C++", "Rust", "OpenMP", "Rayon"]
+  "keywords": ["Barnes-Hut", "N-body", "benchmark", "C++", "Rust", "OpenMP", "Rayon", "(MeSH) Reproducibility of Results", "memory layout", "numerical validation"]
 }

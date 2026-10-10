@@ -1,0 +1,6 @@
+{
+  "base_commit": "343749d3124d5ee44b8fdf1c296a66df3df4eb7e",
+  "campaign": "F:\\Documents\\Artyku\u0142y\\2026\\Kosi\u0144ski\\SoftwareX\\cpp-rust-barnes-hut\\results\\manuscript\\extended-2026-10-08",
+  "computational_sources": "ryzen-source_identity.json",
+  "note": "Development snapshot, not the published v1.1.5. Prebuilt EXEs match the Ryzen campaign byte-for-byte."
+}

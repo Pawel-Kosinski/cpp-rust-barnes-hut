@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 - 2026-10-10
+
+- Added manifest-driven builds and runs for external, multi-file implementations.
+- Separated force-kernel and state-update timings; excluded optional snapshot I/O.
+- Added configurable timesteps, conservation histories, state snapshots, sampled force dumps, and structural-memory accounting.
+- Added uniform-disk and clustered workloads while preserving the default Plummer generator.
+- Added independent sampled direct summation, all-variant validation, timestep tests, thread scaling and a controlled OpenMP waiting-policy probe.
+- Added a two-translation-unit integration fixture and automatic two-body conservation/refinement tests.
+- Kept historical measurements immutable and clarified that V4/V5 total-time ratios are end-to-end, not force-kernel speedups.
+- Added two separately audited 430-process Intel laptop series and a comparison that retains every observation without pooling the series.
+- Version-specific software/data identifier: https://doi.org/10.5281/zenodo.23286007.
+- Preserved the exact experimental source snapshot and binary identities; the release package version does not relabel historical measurements.
+
 ## 1.1.5 - 2026-08-27
 
 - Synchronized version-specific DOI, release date, citation, package, and repository metadata.

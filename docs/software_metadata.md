@@ -6,10 +6,14 @@ BHBench-CR
 
 ## Prepared release
 
-- Version: 1.1.5
-- GitHub release target: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.1.5
-- Benchmark data: v1.1.3 campaign generated from commit `ab17547228b0f7440793c9014bfda41d076a239e`
-- Zenodo archive: https://doi.org/10.5281/zenodo.22134139
+- Version: 1.2.0
+- Release metadata date: 2026-10-10
+- GitHub release target: https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.2.0
+- Version-specific Zenodo DOI: https://doi.org/10.5281/zenodo.23286007
+- Extended data: 766 Ryzen processes and two separate Intel laptop series of 430 processes each.
+- Computational provenance: exact source ZIP and SHA-256 identities in `results/manuscript/extended-2026-10-08/`; recorded build manifests retain their original package version.
+- Historical data: v1.1.3 campaign generated from commit `ab17547228b0f7440793c9014bfda41d076a239e`, previously distributed with v1.1.5.
+- Archive contents and extraction: `docs/release_archive.md`.
 
 ## Purpose
 

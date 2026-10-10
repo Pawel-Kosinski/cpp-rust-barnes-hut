@@ -8,9 +8,9 @@
 #include <cmath>
 #include <iomanip>
 #include "benchmark_options.hpp"
+#include "diagnostics.hpp"
 
 constexpr float G = 1.0f;
-constexpr float TIME_STEP = 0.016f;
 float THETA = 0.3f;
 using Node = NodeV4;
 
@@ -311,6 +311,8 @@ int mainMain(const BenchmarkOptions& options)
     Timer timer;
     double totalTreeBuildTime = 0.0;
     double totalForceTime = 0.0;
+    double totalKernelTime = 0.0;
+    double totalUpdateTime = 0.0;
 
    std::ifstream inFile(options.input);
     if (!inFile)
@@ -331,6 +333,9 @@ int mainMain(const BenchmarkOptions& options)
     if (!validateParticleCount(options, particles.size())) return 1;
 
     //treeArena.reserve(particles.size() * 6);
+
+    DiagnosticWriter<std::vector<Particle>> diagnostics(options.diagnostics, options.timeStep, options.diagnosticStride);
+    diagnostics.record(0, particles);
 
     for (int frame = 0; frame < options.totalFrames(); ++frame)
     {
@@ -383,6 +388,10 @@ int mainMain(const BenchmarkOptions& options)
 
         const double treeTime = timer.stopTime();
         if (frame >= options.warmupFrames) totalTreeBuildTime += treeTime;
+        if (frame == options.warmupFrames && !options.memoryReport.empty()) {
+            writeMemoryReport(options.memoryReport, treeArena.size(), sizeof(Node), treeArena.capacity(), 1,
+                              particles.capacity() * sizeof(Particle), 0);
+        }
         // if(frame == 0) {
         //     std::cout << "Tree construction time: " << (totalTreeBuildTime) << " ms\n";
         //     std::cout << "Tree construction cycles: " << std::fixed << (totalCyclesTree) << " cycles\n";
@@ -394,7 +403,9 @@ int mainMain(const BenchmarkOptions& options)
             calculateForces(static_cast<int>(i), particles, treeArena);
         }
 
-        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles)) return 1;
+        const double kernelTime = timer.stopTime();
+        if (frame == options.warmupFrames && !writeForces(options.dumpForces, particles, options.forceSamples)) return 1;
+        timer.start();
 
         // if (frame == 0 or frame == FRAMES - 1 or frame == 150) { 
         //     validateForceAccuracy(frame, particles);
@@ -404,19 +415,27 @@ int mainMain(const BenchmarkOptions& options)
         // POSITION UPDATE AND FORCE RESET
         for (auto& particle : particles)
         {
-            particle.velocityX += particle.accX * TIME_STEP;
-            particle.velocityY += particle.accY * TIME_STEP;
-            particle.posX += particle.velocityX * TIME_STEP;
-            particle.posY += particle.velocityY * TIME_STEP;
+            particle.velocityX += particle.accX * options.timeStep;
+            particle.velocityY += particle.accY * options.timeStep;
+            particle.posX += particle.velocityX * options.timeStep;
+            particle.posY += particle.velocityY * options.timeStep;
             
             particle.accX = 0.0f; 
             particle.accY = 0.0f; 
         }
-        const double forceTime = timer.stopTime();
-        if (frame >= options.warmupFrames) totalForceTime += forceTime;
+        const double updateTime = timer.stopTime();
+        if (frame >= options.warmupFrames) {
+            totalKernelTime += kernelTime;
+            totalUpdateTime += updateTime;
+            totalForceTime += kernelTime + updateTime;
+        }
+        diagnostics.record(frame + 1, particles, frame + 1 == options.totalFrames());
     }
 
     std::cout << std::fixed << std::setprecision(6);
+    writeState(options.dumpState, particles);
+    std::cout << "Force kernel time: " << (totalKernelTime / options.frames) << " ms / frame\n";
+    std::cout << "State update time: " << (totalUpdateTime / options.frames) << " ms / frame\n";
     std::cout << "Tree construction time: " << (totalTreeBuildTime / options.frames) << " ms / frame\n";
     std::cout << "Force/update time: " << (totalForceTime / options.frames) << " ms / frame\n";
     std::cout << "Cleanup time: 0.000000 ms / frame\n";

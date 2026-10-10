@@ -18,3 +18,8 @@
 CMakeLists.txt text eol=lf
 
 *.xlsx binary
+
+# Frozen experimental files must retain the bytes covered by SHA-256 manifests.
+results/manuscript/extended-2026-10-08/** -text
+results/manuscript/laptop-2026-10-09/** -text
+results/manuscript/laptop-performance-2026-10-09/** -text

@@ -1,0 +1,12 @@
+Algorithm memory usage: 0.437500 MB
+Size of Particle: 28 bytes
+Frame 0:
+Momentum (167.540701, 50.918759)
+Kinetic energy 819993.366961
+Center of mass (500.211668, 500.366180)
+Force kernel time: 285.615700 ms / frame
+State update time: 0.040000 ms / frame
+Tree construction time: 0.000000 ms / frame
+Force/update time: 285.655700 ms / frame
+Cleanup time: 0.000000 ms / frame
+Total measured time: 285.655700 ms

@@ -216,8 +216,8 @@ def plot_figure_3(root: Path, output: Path) -> None:
         )
     axes[1].axhline(1.0, color="#666666", linewidth=1)
     axes[1].set_xlabel("Particles (millions)")
-    axes[1].set_ylabel("V5 speedup over V4")
-    axes[1].set_title("Parallel force-evaluation speedup")
+    axes[1].set_ylabel("End-to-end frame-time ratio (V4/V5)")
+    axes[1].set_title("End-to-end V4/V5 speedup")
     axes[1].legend(frameon=False)
 
     figure.tight_layout()

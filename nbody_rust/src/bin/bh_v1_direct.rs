@@ -3,11 +3,12 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-const TIME_STEP: f32 = 0.016;
 const G : f32 = 1.0;
 
 #[path = "../benchmark_options.rs"]
 mod benchmark_options;
+#[path = "../diagnostics.rs"]
+mod diagnostics;
 
 struct Particle {
     velocity_x: f32,
@@ -102,6 +103,12 @@ fn main() {
     }
 
     let mut total_force_time_ms = 0.0;
+    let mut total_kernel_time_ms = 0.0;
+    let mut total_update_time_ms = 0.0;
+
+    let mut diagnostics = diagnostics::DiagnosticWriter::new(options.diagnostics.as_deref(), options.time_step, options.diagnostic_stride);
+    diagnostics.record(0, particles.iter().map(|p| [p.pos_x, p.pos_y, p.velocity_x, p.velocity_y, p.mass]), false);
+    diagnostics::write_memory_report(options.memory_report.as_deref(), 0, 0, 0, 0, particles.capacity() * std::mem::size_of::<Particle>(), 0);
 
     for frame in 0..options.total_frames() {
 
@@ -136,32 +143,38 @@ fn main() {
             particles[i].acc_y = acc_y;
         }
 
+        let kernel_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
         if frame == options.warmup_frames {
             if let Some(path) = options.dump_forces.as_deref() {
                 if let Err(message) = benchmark_options::write_forces(
                     path,
                     particles.iter().map(|particle| (particle.acc_x, particle.acc_y)),
+                    options.force_samples,
                 ) {
                     eprintln!("{message}");
                     return;
                 }
             }
         }
+        let update_start = Instant::now();
 
         // Euler integration (position update)
         for i in 0..particles.len() {
-            particles[i].velocity_x += particles[i].acc_x * TIME_STEP;
-            particles[i].velocity_y += particles[i].acc_y * TIME_STEP;
-            particles[i].pos_x += particles[i].velocity_x * TIME_STEP;
-            particles[i].pos_y += particles[i].velocity_y * TIME_STEP;
+            particles[i].velocity_x += particles[i].acc_x * options.time_step;
+            particles[i].velocity_y += particles[i].acc_y * options.time_step;
+            particles[i].pos_x += particles[i].velocity_x * options.time_step;
+            particles[i].pos_y += particles[i].velocity_y * options.time_step;
 
             particles[i].acc_x = 0.0;
             particles[i].acc_y = 0.0;
         }
-        let force_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
+        let update_time_ms = update_start.elapsed().as_secs_f64() * 1000.0;
         if frame >= options.warmup_frames {
-            total_force_time_ms += force_time_ms;
+            total_kernel_time_ms += kernel_time_ms;
+            total_update_time_ms += update_time_ms;
+            total_force_time_ms += kernel_time_ms + update_time_ms;
         }
+        diagnostics.record(frame + 1, particles.iter().map(|p| [p.pos_x, p.pos_y, p.velocity_x, p.velocity_y, p.mass]), frame + 1 == options.total_frames());
 
         if frame == options.warmup_frames || frame == options.total_frames() - 1 {
             let metrics = calculate_physics_diagnostics(&particles);
@@ -172,6 +185,9 @@ fn main() {
         }
     }
 
+    diagnostics::write_state(options.dump_state.as_deref(), particles.iter().map(|p| [p.pos_x, p.pos_y, p.velocity_x, p.velocity_y, p.mass]));
+    println!("Force kernel time: {:.6} ms / frame", total_kernel_time_ms / (options.frames as f64));
+    println!("State update time: {:.6} ms / frame", total_update_time_ms / (options.frames as f64));
     println!("Tree construction time: 0.0000 ms / frame");
     println!("Force/update time: {:.4} ms / frame", total_force_time_ms / (options.frames as f64));
     println!("Cleanup time: 0.0000 ms / frame");

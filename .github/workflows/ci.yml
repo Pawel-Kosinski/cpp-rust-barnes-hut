@@ -21,6 +21,13 @@ jobs:
       - name: Build Rust
         working-directory: nbody_rust
         run: cargo build --release --bins
+      - name: Install scientific Python dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/bhbench-python"
+          "$RUNNER_TEMP/bhbench-python/bin/python" -m pip install --requirement requirements.txt
+          echo "$RUNNER_TEMP/bhbench-python/bin" >> "$GITHUB_PATH"
       - name: Scientific and reproducibility tests
         if: runner.os == 'Linux'
         run: |
@@ -28,3 +35,6 @@ jobs:
           bash scripts/test_summary_stats.sh
           bash scripts/numerical_regression.sh --no-build
           bash scripts/test_archive_runner.sh
+          python3 scripts/test_extended.py
+          python3 scripts/test_frozen_sources.py
+          python3 scripts/test_laptop_profiles.py

@@ -1,6 +1,14 @@
 # BHBench-CR
 
-[![Version DOI (v1.1.5)](https://zenodo.org/badge/DOI/10.5281/zenodo.22134139.svg)](https://doi.org/10.5281/zenodo.22134139)
+[![Version DOI (v1.2.0)](https://zenodo.org/badge/DOI/10.5281/zenodo.23286007.svg)](https://doi.org/10.5281/zenodo.23286007)
+
+Version 1.2.0 adds extended validation, separately documented Ryzen and Intel
+campaigns, and external-solver workflows. Its version-specific identifiers are
+[v1.2.0](https://github.com/Pawel-Kosinski/cpp-rust-barnes-hut/releases/tag/v1.2.0)
+and the DOI above. See [extended validation](docs/extended_validation.md), the
+[external solver interface](docs/external_solvers.md), and
+[archive contents and provenance](docs/release_archive.md).
+Historical measurements and their original source identities remain unchanged.
 
 BHBench-CR is a C++/Rust benchmark suite for two-dimensional Barnes-Hut N-body solver variants. It is intended for reproducible implementation experiments, teaching, and comparative studies of data layout, traversal strategy, and the way matched solver strategies are expressed in C++/OpenMP and Rust/Rayon.
 
@@ -21,6 +29,9 @@ The software is not intended to be a production astrophysical simulator or a sta
 - Radius-based multipole acceptance criterion.
 - Force snapshots and RMS/p95 accuracy regression against direct summation.
 - One-process-per-row raw data and scripts that reproduce all manuscript figures.
+- External multi-file build/run manifests and separate force-kernel/update timings.
+- Configurable timesteps, conservation histories, sampled forces and structural-memory reports.
+- Multi-seed/distribution validation and separate-host worker-count scaling.
 
 ## Repository structure
 
@@ -54,6 +65,13 @@ aggregate-only workbook is retained solely for provenance at:
     results/historical/Results_data_v1.0_historical.xlsx
 
 It is not used to generate the current manuscript figures.
+
+The additional campaigns are `results/manuscript/extended-2026-10-08/`,
+`results/manuscript/laptop-2026-10-09/`, and
+`results/manuscript/laptop-performance-2026-10-09/`. Their timing series are
+not pooled, and no observations are removed as outliers. Reproduction of
+the recorded campaigns requires the companion experimental-data archive
+in addition to the GitHub source archive; see `docs/release_archive.md`.
 
 The byte-identical publication inputs are distributed as a separate archival
 asset with `SHA256SUMS`. The generator is deterministic within the recorded
@@ -144,7 +162,7 @@ An interrupted selective run can be continued with the identical command plus
 `--resume --output-dir PATH`; recorded source and protocol metadata are checked
 before completed rows are skipped.
 
-Reproduce all three manuscript experiments and plots with:
+Reproduce the three original manuscript experiments and plots with:
 
     bash scripts/reproduce_all_figures.sh results/reproduced/$(date -u +%Y%m%dT%H%M%SZ)
 
@@ -174,10 +192,11 @@ This project is distributed under the MIT License. See:
 
 ## Citation
 
-If you use this software, please cite the associated SoftwareX article and the
-version-specific software release matching the reported results:
+If you use version 1.2.0, please cite its version-specific software DOI and the
+accompanying article when available. Cite the original version separately when
+using historical results:
 
-    https://doi.org/10.5281/zenodo.22134139
+    https://doi.org/10.5281/zenodo.23286007
 
 Citation metadata are provided in:
 

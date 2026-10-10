@@ -1,0 +1,7 @@
+{
+  "python": "3.11.4",
+  "numpy": "2.4.6",
+  "matplotlib": "3.11.1",
+  "system": "Windows-10-10.0.26200-SP0",
+  "purpose": "Derived figures and descriptive summaries; not the solver execution environment"
+}
